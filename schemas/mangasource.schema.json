@@ -1,0 +1,39 @@
+{
+    "$schema": "http://json-schema.org/schema#",
+    "id": "https://github.com/thibseisel/manga/mangasource.schema.json",
+    "type": "array",
+    "items": {
+        "type": "object",
+        "properties": {
+            "id": {
+                "type": "number",
+                "description": "The unique identifier of that manga."
+            },
+            "title": {
+                "type": "string",
+                "description": "The display title of the manga whose scans are to be downloaded."
+            },
+            "base_url": {
+                "type": "string",
+                "description": "The fixed part of the URL of the website from which scans of that manga can be downloaded."
+            },
+            "single_page": {
+                "type": "array",
+                "description": "A list of template URLs to append to the base URL. If a template fails to load, a new attempt to load an image using the next template will be made, until one is successful or all failed.",
+                "items": {
+                    "type": "string",
+                    "description": "The last part of the URL pointing to a single page. This may contain special sequences of characters used to mark the position of chapter ($c) and page ($p) numbers."
+                }
+            },
+            "double_page": {
+                "type": "array",
+                "description": "Same as \"single_page\" but optimized for cases where the loaded image is a double-page, which is basically two pages in one.",
+                "items": {
+                    "type": "string",
+                    "description": "The last part of the URL pointing to a double-page. This may contain special sequences of characters used to mark the position of chapters ($c) and page ($c, $c1, $c2) numbers."
+                }
+            }
+        },
+        "required": ["id", "title", "base_url"]
+    }
+}
