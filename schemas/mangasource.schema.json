@@ -32,6 +32,10 @@
                     "type": "string",
                     "description": "The last part of the URL pointing to a double-page. This may contain special sequences of characters used to mark the position of chapters ($c) and page ($c, $c1, $c2) numbers."
                 }
+            },
+            "start_page": {
+                "type": "number",
+                "description": "The number of the first page for this source. Some sites starts at 0, while others may start at 1."
             }
         },
         "required": ["id", "title", "base_url"]

@@ -1,6 +1,14 @@
 package com.github.thibseisel.mangabind
 
-class ConsoleView {
+/**
+ * The presentation layer of the application.
+ * This manages basic interactions with the end-user through the text console
+ * such as displaying instructions or data, or read input from the keyboard.
+ */
+object ConsoleView {
+
+    private const val TABLE_HEADER = " %3s | %20s | %50s "
+    private const val MANGA_LINE = "%3d | %20s | %50s "
 
     private val formatNumberRange = Regex("^\\d{1,3}-\\d{1,3}$")
 
@@ -38,12 +46,12 @@ class ConsoleView {
     }
 
     /**
-     * Prompts the user for the identifier of the manga he wish to download scans from.
+     * Prompts the user for the identifier of the manga source he wishes to download scans from.
      * The returned identifier is not guaranteed to match the identifier of an existing manga source.
      *
      * @return A positive or zero integer that may match the id of a manga source, or `-1` if nothing has been typed.
      */
-    fun askMangaId(): Long {
+    fun askSourceId(): Long {
         var input: String
         do {
             printReadHint("Type in the number identifier of the manga")
@@ -52,8 +60,14 @@ class ConsoleView {
         return input.toLong()
     }
 
-    private companion object {
-        const val TABLE_HEADER = " %3s | %20s | %50s "
-        const val MANGA_LINE = "%3d | %20s | %50s "
+    /**
+     * Writes the result of downloading a manga chapter to the console.
+     */
+    fun writeResult(result: LoadResult) {
+        if (result.isSuccessful) {
+            println("[SUCCESS] Chapter ${result.chapter} - ${result.pages.size} pages")
+        } else {
+            System.err.println("[ERROR] Chapter ${result.chapter} - ${result.error}")
+        }
     }
 }

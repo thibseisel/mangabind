@@ -5,12 +5,14 @@ import okhttp3.Request
 import java.io.IOException
 import java.io.InputStream
 
-object PageDownloader {
+class ChapterDownloader(
+    private val httpClient: OkHttpClient
+) {
 
-    private val httpClient = OkHttpClient()
+
 
     @Throws(IOException::class)
-    fun loadImage(url: String): InputStream {
+    private fun loadImage(url: String): InputStream {
         val response = httpClient.newCall(Request.Builder()
                 .url(url)
                 .build()

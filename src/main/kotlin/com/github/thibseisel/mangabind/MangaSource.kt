@@ -19,5 +19,7 @@ class MangaSource
         val singlePages: List<String>?,
 
         @JsonProperty("double_pages")
-        val doublePages: List<String>?
+        val doublePages: List<String>?,
+
+        @JsonProperty("start_page") val startPage: Int
 )
