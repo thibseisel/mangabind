@@ -7,6 +7,7 @@ import kotlinx.coroutines.experimental.channels.actor
 import kotlinx.coroutines.experimental.launch
 import kotlinx.coroutines.experimental.runBlocking
 import okhttp3.OkHttpClient
+import java.io.IOException
 import kotlin.coroutines.experimental.buildIterator
 import kotlin.coroutines.experimental.buildSequence
 
@@ -36,7 +37,7 @@ object MangaBind {
         }
 
         val chapterRange = console.askChapterRange()
-        val jobs = arrayListOf<Job>()
+        val jobs = mutableListOf<Job>()
         for (chapter in chapterRange) {
             // Fork each chapter download task
             jobs += launch {
@@ -65,31 +66,13 @@ object MangaBind {
     }
 
     private fun loadChapter(source: MangaSource, chapterNumber: Int): LoadResult {
-        val downloader = ChapterDownloader(httpClient)
-
-        val urlTemplates = buildSequence {
-            source.singlePages?.also {
-                for (singlePagePart in it) {
-                    yield(source.baseUrl + singlePagePart)
-                }
-            }
-
-            source.doublePages?.also {
-                for (doublePagePart in it) {
-                    yield(source.baseUrl + doublePagePart)
-                }
-            }
+        return try {
+            val downloader = ChapterDownloader(httpClient, source, chapterNumber)
+            downloader.downloadTo("./pages")
+            TODO()
+        } catch (e: IOException) {
+            LoadResult(chapterNumber, intArrayOf(), false, e.message)
         }
-
-        for (template in urlTemplates) {
-
-        }
-
-        TODO()
-    }
-
-    private fun bindUrlParameters(templateUrl: String, chapter: Int, page: Int): String {
-        TODO()
     }
 }
 
