@@ -7,6 +7,30 @@ import java.io.File
 import java.io.IOException
 import java.io.InputStream
 
+private val reUrlParams = Regex("""\[(\d?[cp][12]?)]""")
+
+fun buildUrl(template: String, chapter: Int, page: Int): String {
+    return template.replace(reUrlParams) { match ->
+        val param = match.groupValues[1]
+        val indexOfC = param.indexOf('c')
+        val indexOfP = param.indexOf('p')
+
+        when {
+            indexOfC != -1 -> {
+                val zeroPadding = if (indexOfC == 0) 1 else param[0] - '0'
+                chapter.toString().padStart(zeroPadding, '0')
+            }
+            indexOfP != -1 -> {
+                val zeroPadding = if (indexOfP == 0) 1 else param[0] - '0'
+                val pageIncrement = param.getOrElse(indexOfP + 1) {'1'} - '1'
+                (page + pageIncrement).toString().padStart(zeroPadding, '0')
+            }
+
+            else -> throw AssertionError()
+        }
+    }
+}
+
 class ChapterDownloader(
     private val httpClient: OkHttpClient,
     private val source: MangaSource,
@@ -66,7 +90,7 @@ class ChapterDownloader(
                     } catch (e: IOException) {
                         false
                     }
-                }.first { it == true }
+                }.first { it }
             }
 
             // Attempt to load using double page urls
@@ -105,13 +129,10 @@ class ChapterDownloader(
         }
     }
 
-    private fun buildUrl(template: String, chapter: Int, page: Int): String {
-        TODO()
-    }
-
     @Throws(IOException::class)
     private fun loadImage(url: String): InputStream {
-        val response = httpClient.newCall(Request.Builder()
+        val response = httpClient.newCall(
+            Request.Builder()
                 .url(url)
                 .build()
         ).execute()
