@@ -2,10 +2,12 @@
   {
     "id": 1,
     "title": "Tokyo Ghoul Re",
-    "base_url": "http://lelscanx.co/mangas/tokyo-ghoul-re/",
+	"start_page": 0,
     "single_pages": [
-      "[c]/[2p].jpg"
-    ],
-    "start_page": 0
+      "http://www.lirescan.net/assets/lecture-en-ligne/Tokyo-Ghoul-re/[c]/[2p].jpg",
+      "http://www.lirescan.net/assets/lecture-en-ligne/Tokyo-Ghoul-re/[c]/[2p].jpeg",
+      "http://www.lirescan.net/assets/lecture-en-ligne/Tokyo-Ghoul-re/[c]/[2p].png",
+      "http://www.lirescan.net/assets/lecture-en-ligne/Tokyo-Ghoul-re/[c]/TG[c]-[2p].jpg"
+    ]
   }
 ]

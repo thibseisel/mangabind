@@ -10,6 +10,8 @@ object ConsoleView {
     private const val TABLE_HEADER = " %3s | %20s | %50s "
     private const val MANGA_LINE = "%3d | %20s | %50s "
 
+    private const val RESULT_LINE = "[%c] Chapter %d - Page %02d"
+
     private val formatNumberRange = Regex("^\\d{1,3}-\\d{1,3}$")
 
     private fun printReadHint(hint: String) = print("$hint > ")
@@ -34,7 +36,7 @@ object ConsoleView {
      * @param sources List of sources from which manga pages can be downloaded.
      */
     fun writeMangaList(sources: List<MangaSource>) {
-        println(TABLE_HEADER.format("ID", "MANGA TITLE", "SOURCE BASE URL"))
+        println(TABLE_HEADER.format("ID", "MANGA TITLE", "SOURCE URL"))
         println("--------------------------------------------------------------------------------")
         for (manga in sources) {
             println(MANGA_LINE.format(
@@ -61,13 +63,13 @@ object ConsoleView {
     }
 
     /**
-     * Writes the result of downloading a manga chapter to the console.
+     * Writes the result of downloading a manga page to the console.
      */
     fun writeResult(result: LoadResult) {
         if (result.isSuccessful) {
-            println("[SUCCESS] Chapter ${result.chapter} - ${result.pages.size} pages")
+            println(RESULT_LINE.format('O', result.chapter, result.page))
         } else {
-            System.err.println("[ERROR] Chapter ${result.chapter} - ${result.error}")
+            println(RESULT_LINE.format('X', result.chapter, result.page))
         }
     }
 }

@@ -2,14 +2,11 @@ package com.github.thibseisel.mangabind
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import kotlinx.coroutines.experimental.CoroutineStart
-import kotlinx.coroutines.experimental.Job
 import kotlinx.coroutines.experimental.channels.actor
 import kotlinx.coroutines.experimental.launch
 import kotlinx.coroutines.experimental.runBlocking
 import okhttp3.OkHttpClient
-import java.io.IOException
-import kotlin.coroutines.experimental.buildIterator
-import kotlin.coroutines.experimental.buildSequence
+import kotlin.coroutines.experimental.CoroutineContext
 
 object MangaBind {
 
@@ -37,16 +34,9 @@ object MangaBind {
         }
 
         val chapterRange = console.askChapterRange()
-        val jobs = mutableListOf<Job>()
         for (chapter in chapterRange) {
-            // Fork each chapter download task
-            jobs += launch {
-                val result = loadChapter(pickedSource, chapter)
-                resultReporter.send(result)
-            }
+            loadChapter(pickedSource, chapter)
         }
-
-        jobs.forEach { it.join() }
     }
 
     /**
@@ -60,19 +50,15 @@ object MangaBind {
     private fun loadSourcesFromCatalog(filename: String): List<MangaSource> {
         val mapper = ObjectMapper()
         val catalogIs = Thread.currentThread().contextClassLoader.getResourceAsStream(filename)
-        return mapper.readValue(catalogIs,
+        return mapper.readValue(
+            catalogIs,
             mapper.typeFactory.constructCollectionType(List::class.java, MangaSource::class.java)
         )
     }
 
-    private fun loadChapter(source: MangaSource, chapterNumber: Int): LoadResult {
-        return try {
-            val downloader = ChapterDownloader(httpClient, source, chapterNumber)
-            downloader.downloadTo("./pages")
-            TODO()
-        } catch (e: IOException) {
-            LoadResult(chapterNumber, intArrayOf(), false, e.message)
-        }
+    private fun loadChapter(source: MangaSource, chapterNumber: Int) {
+        val downloader = ChapterDownloader(httpClient, source, chapterNumber, resultReporter)
+        downloader.downloadTo("./pages")
     }
 }
 
@@ -82,8 +68,8 @@ fun main(args: Array<String>) {
 }
 
 class LoadResult(
-        val chapter: Int,
-        val pages: IntArray,
-        val isSuccessful: Boolean,
-        val error: String? = null
+    val chapter: Int,
+    val page: Int,
+    val isSuccessful: Boolean,
+    val error: String? = null
 )

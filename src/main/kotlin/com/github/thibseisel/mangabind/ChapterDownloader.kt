@@ -1,5 +1,6 @@
 package com.github.thibseisel.mangabind
 
+import kotlinx.coroutines.experimental.channels.SendChannel
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.jetbrains.annotations.Contract
@@ -7,39 +8,32 @@ import java.io.File
 import java.io.IOException
 import java.io.InputStream
 
-private val reUrlParams = Regex("""\[(\d?[cp][12]?)]""")
+private val reUrlParams = Regex("""\[(\d?[cpq])]""")
 
-fun buildUrl(template: String, chapter: Int, page: Int): String {
-    return template.replace(reUrlParams) { match ->
+@Contract(pure = true)
+fun buildUrl(templateUrl: String, chapter: Int, page: Int): String {
+    return templateUrl.replace(reUrlParams) { match ->
         val param = match.groupValues[1]
-        val indexOfC = param.indexOf('c')
-        val indexOfP = param.indexOf('p')
 
-        when {
-            indexOfC != -1 -> {
-                val zeroPadding = if (indexOfC == 0) 1 else param[0] - '0'
-                chapter.toString().padStart(zeroPadding, '0')
-            }
-            indexOfP != -1 -> {
-                val zeroPadding = if (indexOfP == 0) 1 else param[0] - '0'
-                val pageIncrement = param.getOrElse(indexOfP + 1) {'1'} - '1'
-                (page + pageIncrement).toString().padStart(zeroPadding, '0')
-            }
-
-            else -> throw AssertionError()
-        }
+        val desiredLength = if (param[0].isDigit()) param[0] - '0' else 1
+        when (param.last()) {
+            'c' -> chapter
+            'p' -> page
+            'q' -> page + 1
+            else -> throw IllegalArgumentException("Unexpected URL param: $param")
+        }.toString().padStart(desiredLength, '0')
     }
 }
 
 class ChapterDownloader(
     private val httpClient: OkHttpClient,
     private val source: MangaSource,
-    private val chapter: Int
+    private val chapter: Int,
+    private val resultReceiver: SendChannel<LoadResult>
 ) {
 
     private val pageSequence: Sequence<Int> = generateSequence(source.startPage) { it + 1 }
     private var shouldSkip = false
-
 
     /**
      * The destination filename for a single page.
@@ -67,8 +61,6 @@ class ChapterDownloader(
     private val destFilenameDoublePage = source.title.filterNot(Char::isWhitespace) + "_%02d_%02d-%02d.%s"
 
     fun downloadTo(folderPath: String) {
-        val singlePageUrls = source.singlePages?.asSequence()?.map { source.baseUrl + it }
-        val doublePageUrls = source.doublePages?.asSequence()?.map { source.baseUrl + it }
 
         page@ for (page in pageSequence) {
 
@@ -78,26 +70,29 @@ class ChapterDownloader(
                 continue
             }
 
-            // Attempt to load using single page urls
-            if (singlePageUrls != null) {
-                singlePageUrls.map {
-                    val url = buildUrl(it, chapter, page)
-                    try {
-                        val imageBytes = loadImage(url)
-                        val destFilename = buildFilename(url, chapter, page)
-                        writeToFile(File(folderPath, destFilename), imageBytes)
-                        true
-                    } catch (e: IOException) {
-                        false
-                    }
-                }.first { it }
+            for (templateUrl in source.singlePages) {
+                val url = buildUrl(templateUrl, chapter, page)
+                val imageStream = loadImage(url)
+                if (imageStream != null) {
+                    val destFilename = buildFilename(url, chapter, page)
+                    writeToFile(File(folderPath, destFilename), imageStream)
+                    continue@page
+                }
             }
 
             // Attempt to load using double page urls
-            if (doublePageUrls != null) {
+            if (source.doublePages != null) {
+                for (templateUrl in source.doublePages) {
+                    val url = buildUrl(templateUrl, chapter, page)
+                    val imageStream = loadImage(url)
+                    if (imageStream != null) {
+                        val destFilename = buildFilename(url, chapter, page, page + 1)
+                        writeToFile(File(folderPath, destFilename), imageStream)
 
-                shouldSkip = true
-                continue
+                        shouldSkip = true
+                        continue@page
+                    }
+                }
             }
 
             // All strategies have failed. This is probably the end of the chapter.
@@ -121,7 +116,7 @@ class ChapterDownloader(
     private fun writeToFile(destFile: File, input: InputStream) {
         val buffer = ByteArray(8 * 1024)
         destFile.outputStream().use { file ->
-            var read = 0
+            var read: Int
             do {
                 read = input.read(buffer)
                 file.write(buffer, 0, read)
@@ -130,14 +125,18 @@ class ChapterDownloader(
     }
 
     @Throws(IOException::class)
-    private fun loadImage(url: String): InputStream {
-        val response = httpClient.newCall(
-            Request.Builder()
-                .url(url)
-                .build()
-        ).execute()
+    private fun loadImage(url: String): InputStream? {
+        try {
+            val response = httpClient.newCall(
+                Request.Builder()
+                    .url(url)
+                    .build()
+            ).execute()
+            if (!response.isSuccessful) return null
+            return response.body()?.byteStream()
 
-        if (!response.isSuccessful) throw IOException("Unexpected code: ${response.code()}")
-        return response.body()!!.byteStream()
+        } catch (ioe: IOException) {
+            return null
+        }
     }
 }
