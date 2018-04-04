@@ -7,7 +7,7 @@ package com.github.thibseisel.mangabind
  */
 object ConsoleView {
 
-    private const val TABLE_HEADER = " %3s | %20s | %50s "
+    private const val TABLE_HEADER = "%3s | %20s | %50s "
     private const val MANGA_LINE = "%3d | %20s | %50s "
 
     private const val RESULT_LINE = "[%c] Chapter %d - Page %02d"
@@ -24,7 +24,7 @@ object ConsoleView {
         var input: String
         do {
             printReadHint("Range of chapters to download (format: X-Y)")
-            input = readLine()?.trim() ?: return IntRange.EMPTY
+            input = readLine()?.trim()?.takeUnless(String::isEmpty) ?: return IntRange.EMPTY
         } while (!input.matches(formatNumberRange))
 
         val (start, end) = input.split('-').map(String::toInt)
@@ -37,7 +37,7 @@ object ConsoleView {
      */
     fun writeMangaList(sources: List<MangaSource>) {
         println(TABLE_HEADER.format("ID", "MANGA TITLE", "SOURCE URL"))
-        println("--------------------------------------------------------------------------------")
+        println("-".repeat(80))
         for (manga in sources) {
             println(MANGA_LINE.format(
                     manga.id,
@@ -45,6 +45,8 @@ object ConsoleView {
                     manga.baseUrl.take(50)
             ))
         }
+
+        println()
     }
 
     /**
@@ -60,6 +62,14 @@ object ConsoleView {
             input = readLine()?.trim() ?: return -1L
         } while (!input.all(Char::isDigit))
         return input.toLong()
+    }
+
+    /**
+     * Prints a message as an error.
+     * @param message The message to display.
+     */
+    fun showErrorMessage(message: String) {
+        System.err.println(message)
     }
 
     /**

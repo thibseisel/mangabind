@@ -1,17 +1,19 @@
 package com.github.thibseisel.mangabind
 
-import com.fasterxml.jackson.databind.ObjectMapper
+import com.github.thibseisel.mangabind.source.LocalJsonCatalogLoader
+import com.github.thibseisel.mangabind.source.SourceLoader
 import kotlinx.coroutines.experimental.CoroutineStart
 import kotlinx.coroutines.experimental.channels.actor
-import kotlinx.coroutines.experimental.launch
 import kotlinx.coroutines.experimental.runBlocking
 import okhttp3.OkHttpClient
-import kotlin.coroutines.experimental.CoroutineContext
+import java.io.IOException
 
 object MangaBind {
 
     private val console = ConsoleView
     private val httpClient = OkHttpClient()
+
+    private val sourceCatalog: SourceLoader = LocalJsonCatalogLoader()
 
     private val resultReporter = actor<LoadResult>(start = CoroutineStart.LAZY) {
         for (result in channel) {
@@ -23,7 +25,15 @@ object MangaBind {
      * Execute the application.
      */
     fun run(): Unit = runBlocking {
-        val sources = loadSourcesFromCatalog("mangasource.json")
+        // Load manga sources from catalog.
+        val sources = try {
+            sourceCatalog.loadAll()
+        } catch (ioe: IOException) {
+            val message = ioe.message ?: "Error while loading manga sources catalog."
+            console.showErrorMessage(message)
+            return@runBlocking
+        }
+
         console.writeMangaList(sources)
 
         var pickedSource: MangaSource? = null
@@ -34,9 +44,9 @@ object MangaBind {
         }
 
         val chapterRange = console.askChapterRange()
-        for (chapter in chapterRange) {
+        /*for (chapter in chapterRange) {
             loadChapter(pickedSource, chapter)
-        }
+        }*/
     }
 
     /**
@@ -45,15 +55,6 @@ object MangaBind {
      */
     fun cleanup() {
         resultReporter.close()
-    }
-
-    private fun loadSourcesFromCatalog(filename: String): List<MangaSource> {
-        val mapper = ObjectMapper()
-        val catalogIs = Thread.currentThread().contextClassLoader.getResourceAsStream(filename)
-        return mapper.readValue(
-            catalogIs,
-            mapper.typeFactory.constructCollectionType(List::class.java, MangaSource::class.java)
-        )
     }
 
     private fun loadChapter(source: MangaSource, chapterNumber: Int) {

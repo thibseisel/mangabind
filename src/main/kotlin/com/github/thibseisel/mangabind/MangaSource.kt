@@ -1,6 +1,7 @@
 package com.github.thibseisel.mangabind
 
 import com.fasterxml.jackson.annotation.JsonCreator
+import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.annotation.JsonProperty
 import java.net.URL
 
@@ -20,10 +21,10 @@ class MangaSource
         val singlePages: List<String>,
 
         @JsonProperty("double_pages")
-        val doublePages: List<String>?,
-
+        val doublePages: List<String>?
+) {
+        @JsonIgnore
         val baseUrl: String = singlePages.firstOrNull()?.let {
-            URL(it).authority
+                URL(it).authority
         } ?: ""
-
-)
+}
