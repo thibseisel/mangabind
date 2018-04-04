@@ -2,12 +2,13 @@
   {
     "id": 1,
     "title": "Tokyo Ghoul Re",
-	"start_page": 0,
+	"start_page": 1,
     "single_pages": [
       "http://www.lirescan.net/assets/lecture-en-ligne/Tokyo-Ghoul-re/[c]/[2p].jpg",
       "http://www.lirescan.net/assets/lecture-en-ligne/Tokyo-Ghoul-re/[c]/[2p].jpeg",
       "http://www.lirescan.net/assets/lecture-en-ligne/Tokyo-Ghoul-re/[c]/[2p].png",
-      "http://www.lirescan.net/assets/lecture-en-ligne/Tokyo-Ghoul-re/[c]/TG[c]-[2p].jpg"
+      "http://www.lirescan.net/assets/lecture-en-ligne/Tokyo-Ghoul-re/[c]/TG[c]-[2p].jpg",
+      "http://www.lirescan.net/assets/lecture-en-ligne/Tokyo-Ghoul-re/[c]/[3p].jpeg"
     ]
   }
 ]

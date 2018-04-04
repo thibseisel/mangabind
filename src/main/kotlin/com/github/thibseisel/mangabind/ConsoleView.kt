@@ -1,5 +1,7 @@
 package com.github.thibseisel.mangabind
 
+import com.github.thibseisel.mangabind.source.MangaSource
+
 /**
  * The presentation layer of the application.
  * This manages basic interactions with the end-user through the text console
@@ -10,7 +12,7 @@ object ConsoleView {
     private const val TABLE_HEADER = "%3s | %20s | %50s "
     private const val MANGA_LINE = "%3d | %20s | %50s "
 
-    private const val RESULT_LINE = "[%c] Chapter %d - Page %02d"
+    private const val RESULT_LINE = "[%c] Chapter %d - Page %s"
 
     private val formatNumberRange = Regex("^\\d{1,3}-\\d{1,3}$")
 
@@ -32,17 +34,17 @@ object ConsoleView {
     }
 
     /**
-     * Print a table showing details of the specified manga sources.
+     * Prints a table showing details of the specified manga sources.
      * @param sources List of sources from which manga pages can be downloaded.
      */
-    fun writeMangaList(sources: List<MangaSource>) {
+    fun displayMangaList(sources: List<MangaSource>) {
         println(TABLE_HEADER.format("ID", "MANGA TITLE", "SOURCE URL"))
         println("-".repeat(80))
         for (manga in sources) {
             println(MANGA_LINE.format(
                     manga.id,
                     manga.title.take(20),
-                    manga.baseUrl.take(50)
+                    manga.origin.take(50)
             ))
         }
 
@@ -76,10 +78,11 @@ object ConsoleView {
      * Writes the result of downloading a manga page to the console.
      */
     fun writeResult(result: LoadResult) {
+        val pages = result.pages.joinToString("-")
         if (result.isSuccessful) {
-            println(RESULT_LINE.format('O', result.chapter, result.page))
+            println(RESULT_LINE.format('O', result.chapter, pages))
         } else {
-            println(RESULT_LINE.format('X', result.chapter, result.page))
+            println(RESULT_LINE.format('X', result.chapter, pages))
         }
     }
 }

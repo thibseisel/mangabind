@@ -1,11 +1,10 @@
 package com.github.thibseisel.mangabind.source
 
-import com.github.thibseisel.mangabind.MangaSource
 import java.io.IOException
 
 /**
  * Provides the list of manga resources available to this application.
- * This interface abstracts the origin of the manga catalog and the way to retrieve it.
+ * This interface abstracts away the origin of the manga catalog and the way to retrieve it.
  */
 interface SourceLoader {
 

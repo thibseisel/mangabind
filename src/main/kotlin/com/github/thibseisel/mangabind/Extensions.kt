@@ -1,14 +1,31 @@
 package com.github.thibseisel.mangabind
 
-fun Char.repeat(times: Int): String {
-    require(times >= 0) { "Count 'times' must be non-negative, but was $times" }
-    return when (times) {
+import java.net.MalformedURLException
+import java.net.URL
+
+/**
+ * Creates a new String composed of this character repeated [n] times.
+ * This is more efficient than [String.repeat] for strings of only one character.
+ *
+ * @receiver The character to be repeated.
+ * @param n The number of times the character should be repeated, must be non-negative.
+ * @return A String composed of the receiver character repeated [n] times.
+ */
+fun Char.repeat(n: Int): String {
+    require(n >= 0) { "Count 'n' must be non-negative, but was $n" }
+    return when (n) {
         0 -> ""
         1 -> toString()
-        else -> buildString(times) {
-            repeat(times) {
-                append(this@repeat)
-            }
-        }
+        else -> String(CharArray(n) {this})
     }
 }
+
+/**
+ * Parse a String as an [URL].
+ *
+ * @receiver The string representation of a valid URL.
+ * @return An Uniform Resource Locator object.
+ * @throws MalformedURLException If no protocol is specified, or an unknown protocol is found.
+ */
+@Throws(MalformedURLException::class)
+fun String.toUrl(): URL = URL(this)
