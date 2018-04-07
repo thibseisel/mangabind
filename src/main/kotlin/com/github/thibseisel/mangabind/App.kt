@@ -1,6 +1,7 @@
 package com.github.thibseisel.mangabind
 
-import com.github.thibseisel.mangabind.source.LocalJsonCatalogLoader
+import com.github.thibseisel.mangabind.dagger.DaggerAppComponent
+import com.github.thibseisel.mangabind.dagger.FilenameProviderModule
 import com.github.thibseisel.mangabind.source.MangaSource
 import com.github.thibseisel.mangabind.source.SourceLoader
 import kotlinx.coroutines.experimental.*
@@ -10,14 +11,18 @@ import okhttp3.Request
 import java.io.File
 import java.io.IOException
 import java.io.InputStream
+import javax.inject.Inject
+import javax.inject.Named
 
-object MangaBind {
+class Mangabind
+@Inject constructor(
+    private val console: ConsoleView,
+    private val httpClient: OkHttpClient,
+    private val sourceCatalog: SourceLoader,
+    @Named("outputDir") outputDirName: String
+) {
 
-    private val console = ConsoleView
-    private val httpClient = OkHttpClient()
-    private val parentFolder = File("pages")
-
-    private val sourceCatalog: SourceLoader = LocalJsonCatalogLoader()
+    private val outputDir = File(outputDirName)
 
     private val resultReporter = actor<LoadResult>(start = CoroutineStart.LAZY) {
         for (result in channel) {
@@ -47,7 +52,7 @@ object MangaBind {
             pickedSource = sources.firstOrNull { it.id == sourceId }
         }
 
-        parentFolder.mkdir()
+        outputDir.mkdir()
         val chapterRange = console.askChapterRange()
         for (chapter in chapterRange) {
             loadChapter(pickedSource, chapter)
@@ -153,8 +158,14 @@ object MangaBind {
 }
 
 fun main(args: Array<String>) {
-    MangaBind.run()
-    MangaBind.cleanup()
+    val appComponent = DaggerAppComponent.builder()
+        .filenameProviderModule(FilenameProviderModule("pages"))
+        .build()
+
+    with (appComponent.mangabind) {
+        run()
+        cleanup()
+    }
 }
 
 class LoadResult(

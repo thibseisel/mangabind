@@ -1,22 +1,31 @@
 package com.github.thibseisel.mangabind
 
 import com.github.thibseisel.mangabind.source.MangaSource
+import java.io.BufferedReader
+import java.io.PrintStream
+import javax.inject.Inject
 
 /**
  * The presentation layer of the application.
  * This manages basic interactions with the end-user through the text console
  * such as displaying instructions or data, or read input from the keyboard.
  */
-object ConsoleView {
+class ConsoleView
+@Inject constructor(
+    private val `in`: BufferedReader,
+    private val out: PrintStream
+) {
 
-    private const val TABLE_HEADER = "%3s | %20s | %50s "
-    private const val MANGA_LINE = "%3d | %20s | %50s "
+    private companion object {
+        const val TABLE_HEADER = "%3s | %20s | %50s "
+        const val MANGA_LINE = "%3d | %20s | %50s "
 
-    private const val RESULT_LINE = "[%c] Chapter %d - Page %s"
+        const val RESULT_LINE = "[%c] Chapter %d - Page %s"
 
-    private val formatNumberRange = Regex("^\\d{1,3}-\\d{1,3}$")
+        val formatNumberRange = Regex("^\\d{1,3}-\\d{1,3}$")
+    }
 
-    private fun printReadHint(hint: String) = print("$hint > ")
+    private fun printReadHint(hint: String) = out.print("$hint > ")
 
     /**
      * Prompts the user for the range of chapter numbers he wants to download.
@@ -26,7 +35,7 @@ object ConsoleView {
         var input: String
         do {
             printReadHint("Range of chapters to download (format: X-Y)")
-            input = readLine()?.trim()?.takeUnless(String::isEmpty) ?: return IntRange.EMPTY
+            input = `in`.readLine()?.trim()?.takeUnless(String::isEmpty) ?: return IntRange.EMPTY
         } while (!input.matches(formatNumberRange))
 
         val (start, end) = input.split('-').map(String::toInt)
@@ -41,14 +50,14 @@ object ConsoleView {
         println(TABLE_HEADER.format("ID", "MANGA TITLE", "SOURCE URL"))
         println("-".repeat(80))
         for (manga in sources) {
-            println(MANGA_LINE.format(
+            out.println(MANGA_LINE.format(
                     manga.id,
                     manga.title.take(20),
                     manga.origin.take(50)
             ))
         }
 
-        println()
+        out.println()
     }
 
     /**
@@ -61,8 +70,9 @@ object ConsoleView {
         var input: String
         do {
             printReadHint("Type in the number identifier of the manga")
-            input = readLine()?.trim() ?: return -1L
+            input = `in`.readLine()?.trim() ?: return -1L
         } while (!input.all(Char::isDigit))
+        readLine()
         return input.toLong()
     }
 
@@ -71,7 +81,7 @@ object ConsoleView {
      * @param message The message to display.
      */
     fun showErrorMessage(message: String) {
-        System.err.println(message)
+        out.println(message)
     }
 
     /**
@@ -80,9 +90,9 @@ object ConsoleView {
     fun writeResult(result: LoadResult) {
         val pages = result.pages.joinToString("-")
         if (result.isSuccessful) {
-            println(RESULT_LINE.format('O', result.chapter, pages))
+            out.println(RESULT_LINE.format('O', result.chapter, pages))
         } else {
-            println(RESULT_LINE.format('X', result.chapter, pages))
+            out.println(RESULT_LINE.format('X', result.chapter, pages))
         }
     }
 }

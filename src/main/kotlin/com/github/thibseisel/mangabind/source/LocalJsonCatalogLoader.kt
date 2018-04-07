@@ -8,28 +8,21 @@ import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import org.jetbrains.annotations.TestOnly
 import java.io.FileNotFoundException
 import java.io.IOException
-
-private const val RES_FILENAME = "mangasource.json"
+import javax.inject.Inject
+import javax.inject.Named
 
 /**
  * Loads manga resource list from the JSON catalog bundled with the application.
  *
  * @constructor
  * Creates an instance of a loader that fetches from a given resource file bundled with the application.
- * This should only be used for test purposes.
- * For production, the parameter-less constructor should be used instead.
  *
  * @param filename The name of a JSON resource file bundled with the application from which manga should be read.
  */
 class LocalJsonCatalogLoader
-@TestOnly constructor(
-        private val filename: String
+@Inject constructor(
+        @Named("catalog") private val filename: String
 ): SourceLoader {
-
-    /**
-     * Creates an instance of a loader that fetches from the bundled catalog file.
-     */
-    constructor() : this(RES_FILENAME)
 
     private val mapper: ObjectMapper = jacksonObjectMapper()
 
