@@ -13,6 +13,7 @@ import org.apache.logging.log4j.Logger
 import java.io.File
 import java.io.IOException
 import java.io.InputStream
+import java.util.*
 import javax.inject.Inject
 import javax.inject.Named
 
@@ -27,7 +28,7 @@ class Mangabind
     private val outputDir = File(outputDirName)
     private val logger: Logger = LogManager.getFormatterLogger("App")
 
-    private val resultReporter = actor<LoadResult>(start = CoroutineStart.LAZY) {
+    private val resultReporter = actor<LoadResult>(start = CoroutineStart.LAZY, capacity = 3) {
         for (result in channel) {
             console.writeResult(result)
         }
@@ -84,18 +85,25 @@ class Mangabind
         // Provide an immutable increasing page number to solve concurrency problems
         val pageIterator = NaturalNumbers(startValue = source.startPage, maxValue = 100)
 
+        val singlePages = LinkedList<String>(source.singlePages)
+        val doublePages = LinkedList<String>(source.doublePages ?: emptyList())
+
         try {
             page@ while (pageIterator.hasNext()) {
                 val page = pageIterator.nextInt()
 
                 logger.info("[%d,%02d] Matching single-page urls...", chapter, page)
 
-                url@ for (template in source.singlePages) {
+                url@ for ((index, template) in singlePages.withIndex()) {
                     val url = buildUrl(template, chapter, page)
                     logger.trace(url)
                     val imageStream = attemptConnection(url) ?: continue@url
 
                     logger.info("[%d,%02d] Found matching URL %s", chapter, page, url)
+
+                    // Promote the url that hit, as it is more likely to hit again.
+                    singlePages.removeAt(index)
+                    singlePages.addFirst(template)
 
                     launch(parent = chapterDownloadJob) {
                         val filename = destFilename.format(chapter, page, url.substringAfterLast('.'))
@@ -105,38 +113,40 @@ class Mangabind
                         logger.debug("[%d,%02d] Saved to file %s", chapter, page, filename)
                     }
 
-                    // Skipping to the next page is done at each iteration
+                    // Skipping to the next page is done at each iteration.
                     continue@page
                 }
 
                 logger.info("[%d,%02d] Matching double-page urls...", chapter, page)
 
-                if (source.doublePages != null) {
-                    url@ for (template in source.doublePages) {
-                        val url = buildUrl(template, chapter, page)
-                        logger.trace(url)
-                        val imageStream = attemptConnection(url) ?: continue@url
+                url@ for ((index, template) in doublePages.withIndex()) {
+                    val url = buildUrl(template, chapter, page)
+                    logger.trace(url)
+                    val imageStream = attemptConnection(url) ?: continue@url
 
-                        logger.info("[%d,%02d] Found matching URL %s", chapter, page, url)
+                    logger.info("[%d,%02d] Found matching URL %s", chapter, page, url)
 
-                        launch(parent = chapterDownloadJob) {
-                            val filename = destFilenameDoublePage.format(
-                                chapter,
-                                page,
-                                page + 1,
-                                url.substringAfterLast('.')
-                            )
+                    // Promote the url that hit, as it is more likely to hit again.
+                    doublePages.removeAt(index)
+                    doublePages.addFirst(template)
 
-                            val destFile = File("pages", filename)
-                            writeTo(destFile, imageStream)
-                            resultReporter.send(LoadResult(true, chapter, page..page + 1))
-                            logger.debug("[%d,%02d] Saved to file %s", chapter, page, filename)
-                        }
+                    launch(parent = chapterDownloadJob) {
+                        val filename = destFilenameDoublePage.format(
+                            chapter,
+                            page,
+                            page + 1,
+                            url.substringAfterLast('.')
+                        )
 
-                        // Manually skip one more page
-                        pageIterator.nextInt()
-                        continue@page
+                        val destFile = File("pages", filename)
+                        writeTo(destFile, imageStream)
+                        resultReporter.send(LoadResult(true, chapter, page..page + 1))
+                        logger.debug("[%d,%02d] Saved to file %s", chapter, page, filename)
                     }
+
+                    // Manually skip one more page to increment the page counter by 2.
+                    pageIterator.nextInt()
+                    continue@page
                 }
 
                 logger.info("[%d,%02d] No matching URL found.", chapter, page)

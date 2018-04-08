@@ -49,8 +49,10 @@ dependencies {
     testCompile 'junit:junit:4.12'
 }
 
+// Include Kapt-generated classes in the classpath.
 sourceSets.main.java.srcDir file("$buildDir/generated/source/kapt/main")
 
+// Mark Kapt output as a generated source directory.
 idea {
     module {
         generatedSourceDirs += file("$buildDir/generated/source/kapt/main")
@@ -63,6 +65,7 @@ kotlin {
     }
 }
 
+// Configure the produced Jar as an executable Jar.
 jar {
     manifest {
         attributes 'Main-Class': 'com.github.thibseisel.mangabind.AppKt'
