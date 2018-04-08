@@ -52,21 +52,29 @@ class Mangabind
             return
         }
 
-        console.displayMangaList(sources)
+        if (sources.isNotEmpty()) {
+            console.displayMangaList(sources)
 
-        var pickedSource: MangaSource? = null
-        while (pickedSource == null) {
-            val sourceId = console.askSourceId()
-            if (sourceId < 0) return
-            pickedSource = sources.firstOrNull { it.id == sourceId }
+            var pickedSource: MangaSource? = null
+            while (pickedSource == null) {
+                val sourceId = console.askSourceId()
+                if (sourceId < 0) return
+                pickedSource = sources.firstOrNull { it.id == sourceId }
+            }
+
+            outputDir.mkdir()
+            val chapterRange = console.askChapterRange()
+            for (chapter in chapterRange) {
+                logger.info("Start loading of chapter N°%d...", chapter)
+                loadChapter(pickedSource, chapter)
+            }
+
+        } else {
+            logger.warn("Manga catalog is empty. Maybe should be filled ?")
+            console.showErrorMessage("No manga sources available.")
         }
 
-        outputDir.mkdir()
-        val chapterRange = console.askChapterRange()
-        for (chapter in chapterRange) {
-            logger.info("Start loading of chapter N°%d...", chapter)
-            loadChapter(pickedSource, chapter)
-        }
+        logger.info("Application terminated normally.")
     }
 
     /**
@@ -84,6 +92,7 @@ class Mangabind
 
         // Provide an immutable increasing page number to solve concurrency problems
         val pageIterator = NaturalNumbers(startValue = source.startPage, maxValue = 100)
+        var giveLastChance = true
 
         val singlePages = LinkedList<String>(source.singlePages)
         val doublePages = LinkedList<String>(source.doublePages ?: emptyList())
@@ -92,7 +101,7 @@ class Mangabind
             page@ while (pageIterator.hasNext()) {
                 val page = pageIterator.nextInt()
 
-                logger.info("[%d,%02d] Matching single-page urls...", chapter, page)
+                logger.debug("[%d,%02d] Matching single-page urls...", chapter, page)
 
                 url@ for ((index, template) in singlePages.withIndex()) {
                     val url = buildUrl(template, chapter, page)
@@ -110,14 +119,16 @@ class Mangabind
                         val destFile = File("pages", filename)
                         writeTo(destFile, imageStream)
                         resultReporter.send(LoadResult(true, chapter, page..page))
-                        logger.debug("[%d,%02d] Saved to file %s", chapter, page, filename)
                     }
+
+                    // Restore last chance
+                    giveLastChance = true
 
                     // Skipping to the next page is done at each iteration.
                     continue@page
                 }
 
-                logger.info("[%d,%02d] Matching double-page urls...", chapter, page)
+                logger.debug("[%d,%02d] Matching double-page urls...", chapter, page)
 
                 url@ for ((index, template) in doublePages.withIndex()) {
                     val url = buildUrl(template, chapter, page)
@@ -141,11 +152,20 @@ class Mangabind
                         val destFile = File("pages", filename)
                         writeTo(destFile, imageStream)
                         resultReporter.send(LoadResult(true, chapter, page..page + 1))
-                        logger.debug("[%d,%02d] Saved to file %s", chapter, page, filename)
                     }
 
+                    // Restore last chance
+                    giveLastChance = true
+                    
                     // Manually skip one more page to increment the page counter by 2.
                     pageIterator.nextInt()
+                    continue@page
+                }
+
+                if (giveLastChance) {
+                    logger.info("[%d,%02d] No matching URL. Check for a \"missing page\" scenario...", chapter, page)
+                    resultReporter.send(LoadResult(false, chapter, page..page))
+                    giveLastChance = false
                     continue@page
                 }
 
@@ -155,10 +175,10 @@ class Mangabind
                 break@page
             }
 
-            logger.info("Waiting for download tasks to complete...")
+            logger.debug("Waiting for download tasks to complete...")
             chapterDownloadJob.joinChildren()
 
-            logger.info("Application terminated normally.")
+            logger.info("Finished downloading chapter %s.\n", chapter)
 
         } catch (ioe: IOException) {
             logger.error("Unexpected error while loading chapter %d.", chapter, ioe)
@@ -205,6 +225,9 @@ fun main(args: Array<String>) {
         run()
         cleanup()
     }
+
+    // Press Enter to continue...
+    readLine()
 }
 
 class LoadResult(
