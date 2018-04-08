@@ -25,7 +25,7 @@ class Mangabind
 ) {
 
     private val outputDir = File(outputDirName)
-    private val logger: Logger = LogManager.getFormatterLogger()
+    private val logger: Logger = LogManager.getFormatterLogger("App")
 
     private val resultReporter = actor<LoadResult>(start = CoroutineStart.LAZY) {
         for (result in channel) {
@@ -45,7 +45,7 @@ class Mangabind
             sourceCatalog.loadAll().sortedBy { it.id }
 
         } catch (ioe: IOException) {
-            logger.error("Error while loading catalog.", ioe)
+            logger.fatal("Error while loading catalog.", ioe)
             val message = ioe.message ?: "Error while loading manga sources catalog."
             console.showErrorMessage(message)
             return
@@ -92,7 +92,7 @@ class Mangabind
 
                 url@ for (template in source.singlePages) {
                     val url = buildUrl(template, chapter, page)
-                    logger.info(url)
+                    logger.trace(url)
                     val imageStream = attemptConnection(url) ?: continue@url
 
                     logger.info("[%d,%02d] Found matching URL %s", chapter, page, url)
@@ -102,6 +102,7 @@ class Mangabind
                         val destFile = File("pages", filename)
                         writeTo(destFile, imageStream)
                         resultReporter.send(LoadResult(true, chapter, page..page))
+                        logger.debug("[%d,%02d] Saved to file %s", chapter, page, filename)
                     }
 
                     // Skipping to the next page is done at each iteration
@@ -113,7 +114,7 @@ class Mangabind
                 if (source.doublePages != null) {
                     url@ for (template in source.doublePages) {
                         val url = buildUrl(template, chapter, page)
-                        logger.info(url)
+                        logger.trace(url)
                         val imageStream = attemptConnection(url) ?: continue@url
 
                         logger.info("[%d,%02d] Found matching URL %s", chapter, page, url)
@@ -129,6 +130,7 @@ class Mangabind
                             val destFile = File("pages", filename)
                             writeTo(destFile, imageStream)
                             resultReporter.send(LoadResult(true, chapter, page..page + 1))
+                            logger.debug("[%d,%02d] Saved to file %s", chapter, page, filename)
                         }
 
                         // Manually skip one more page
