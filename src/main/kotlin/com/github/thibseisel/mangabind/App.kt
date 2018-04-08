@@ -8,6 +8,8 @@ import kotlinx.coroutines.experimental.*
 import kotlinx.coroutines.experimental.channels.actor
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import org.apache.logging.log4j.LogManager
+import org.apache.logging.log4j.Logger
 import java.io.File
 import java.io.IOException
 import java.io.InputStream
@@ -23,6 +25,7 @@ class Mangabind
 ) {
 
     private val outputDir = File(outputDirName)
+    private val logger: Logger = LogManager.getFormatterLogger()
 
     private val resultReporter = actor<LoadResult>(start = CoroutineStart.LAZY) {
         for (result in channel) {
@@ -34,10 +37,15 @@ class Mangabind
      * Execute the application.
      */
     fun run() {
+
+        logger.info("Starting application.")
+
         // Load manga sources from catalog.
         val sources = try {
             sourceCatalog.loadAll().sortedBy { it.id }
+
         } catch (ioe: IOException) {
+            logger.error("Error while loading catalog.", ioe)
             val message = ioe.message ?: "Error while loading manga sources catalog."
             console.showErrorMessage(message)
             return
@@ -55,6 +63,7 @@ class Mangabind
         outputDir.mkdir()
         val chapterRange = console.askChapterRange()
         for (chapter in chapterRange) {
+            logger.info("Start loading of chapter N°%d...", chapter)
             loadChapter(pickedSource, chapter)
         }
     }
@@ -71,58 +80,76 @@ class Mangabind
         val chapterDownloadJob = Job()
         val destFilename = source.title.filterNot(Char::isWhitespace) + "_%02d_%02d.%s"
         val destFilenameDoublePage = source.title.filterNot(Char::isWhitespace) + "_%02d_%02d-%02d.%s"
-        var page = source.startPage
+
+        // Provide an immutable increasing page number to solve concurrency problems
+        val pageIterator = NaturalNumbers(startValue = source.startPage, maxValue = 100)
 
         try {
-            page@ while (true) {
+            page@ while (pageIterator.hasNext()) {
+                val page = pageIterator.nextInt()
+
+                logger.info("[%d,%02d] Matching single-page urls...", chapter, page)
 
                 url@ for (template in source.singlePages) {
                     val url = buildUrl(template, chapter, page)
+                    logger.info(url)
                     val imageStream = attemptConnection(url) ?: continue@url
 
+                    logger.info("[%d,%02d] Found matching URL %s", chapter, page, url)
+
                     launch(parent = chapterDownloadJob) {
-                        val pageNumber = page
-                        val filename = destFilename.format(chapter, pageNumber, url.substringAfterLast('.'))
+                        val filename = destFilename.format(chapter, page, url.substringAfterLast('.'))
                         val destFile = File("pages", filename)
                         writeTo(destFile, imageStream)
-                        resultReporter.send(LoadResult(true, chapter, pageNumber..pageNumber))
+                        resultReporter.send(LoadResult(true, chapter, page..page))
                     }
 
-                    page++
+                    // Skipping to the next page is done at each iteration
                     continue@page
                 }
+
+                logger.info("[%d,%02d] Matching double-page urls...", chapter, page)
 
                 if (source.doublePages != null) {
                     url@ for (template in source.doublePages) {
                         val url = buildUrl(template, chapter, page)
+                        logger.info(url)
                         val imageStream = attemptConnection(url) ?: continue@url
 
+                        logger.info("[%d,%02d] Found matching URL %s", chapter, page, url)
+
                         launch(parent = chapterDownloadJob) {
-                            val pageNumber = page
                             val filename = destFilenameDoublePage.format(
                                 chapter,
-                                pageNumber,
-                                pageNumber + 1,
+                                page,
+                                page + 1,
                                 url.substringAfterLast('.')
                             )
 
                             val destFile = File("pages", filename)
                             writeTo(destFile, imageStream)
-                            resultReporter.send(LoadResult(true, chapter, pageNumber..pageNumber + 1))
+                            resultReporter.send(LoadResult(true, chapter, page..page + 1))
                         }
 
-                        page += 2
+                        // Manually skip one more page
+                        pageIterator.nextInt()
                         continue@page
                     }
                 }
+
+                logger.info("[%d,%02d] No matching URL found.", chapter, page)
 
                 resultReporter.send(LoadResult(false, chapter, page..page))
                 break@page
             }
 
+            logger.info("Waiting for download tasks to complete...")
             chapterDownloadJob.joinChildren()
 
+            logger.info("Application terminated normally.")
+
         } catch (ioe: IOException) {
+            logger.error("Unexpected error while loading chapter %d.", chapter, ioe)
             val error = "Error while loading chapter $chapter of ${source.title}: ${ioe.message}"
             console.showErrorMessage(error)
             chapterDownloadJob.cancelAndJoin()

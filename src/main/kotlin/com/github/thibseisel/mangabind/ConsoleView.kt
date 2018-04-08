@@ -72,7 +72,6 @@ class ConsoleView
             printReadHint("Type in the number identifier of the manga")
             input = `in`.readLine()?.trim() ?: return -1L
         } while (!input.all(Char::isDigit))
-        readLine()
         return input.toLong()
     }
 

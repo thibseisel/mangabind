@@ -1,21 +1,24 @@
 package com.github.thibseisel.mangabind.source
 
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.FileNotFoundException
 import java.io.IOException
 
-class LocalJsonCatalogLoaderTest {
+class JsonResourceLoaderTest {
+
+    private val mapper = jacksonObjectMapper()
 
     @Test(expected = FileNotFoundException::class)
     fun whenFileDoesNotExists_throwsIOException() {
-        val loader = LocalJsonCatalogLoader("unavailable_file.json")
+        val loader = JsonResourceLoader(mapper, "unavailable_file.json")
         loader.loadAll()
     }
 
     @Test
     fun whenReadingValidEmptyFile_returnsEmptyList() {
-        val loader = LocalJsonCatalogLoader("empty.json")
+        val loader = JsonResourceLoader(mapper, "empty.json")
         val sources = loader.loadAll()
 
         assertTrue(sources.isEmpty())
@@ -23,13 +26,13 @@ class LocalJsonCatalogLoaderTest {
 
     @Test(expected = IOException::class)
     fun whenReadingMalformedJson_throwsIOException() {
-        val loader = LocalJsonCatalogLoader("malformed.json")
+        val loader = JsonResourceLoader(mapper, "malformed.json")
         loader.loadAll()
     }
 
     @Test(expected = IOException::class)
     fun whenReadingInvalidData_throwsIOException() {
-        val loader = LocalJsonCatalogLoader("invalid.json")
+        val loader = JsonResourceLoader(mapper, "invalid.json")
         loader.loadAll()
     }
 }

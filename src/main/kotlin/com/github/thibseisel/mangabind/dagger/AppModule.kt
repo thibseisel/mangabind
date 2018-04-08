@@ -8,19 +8,24 @@ import okhttp3.OkHttpClient
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.io.PrintStream
+import javax.inject.Singleton
 
 @Module
 object AppModule {
 
     @JvmStatic
-    @Provides fun providesJacksonMapper(): ObjectMapper = jacksonObjectMapper()
+    @Provides @Singleton
+    fun providesJacksonMapper(): ObjectMapper = jacksonObjectMapper()
 
     @JvmStatic
-    @Provides fun providesHttpClient(): OkHttpClient = OkHttpClient()
+    @Provides @Singleton
+    fun providesHttpClient(): OkHttpClient = OkHttpClient()
 
     @JvmStatic
-    @Provides fun providesStandardInput(): BufferedReader = BufferedReader(InputStreamReader(System.`in`))
+    @Provides @Singleton
+    fun providesStandardInput(): BufferedReader = BufferedReader(InputStreamReader(System.`in`))
 
     @JvmStatic
-    @Provides fun providesStandardOutput(): PrintStream = System.out
+    @Provides @Singleton
+    fun providesStandardOutput(): PrintStream = System.out
 }
