@@ -1,5 +1,6 @@
 package com.github.thibseisel.mangabind
 
+import com.github.thibseisel.mangabind.i18n.TranslationProvider
 import com.github.thibseisel.mangabind.source.MangaSource
 import java.io.BufferedReader
 import java.io.PrintStream
@@ -13,14 +14,13 @@ import javax.inject.Inject
 class ConsoleView
 @Inject constructor(
     private val `in`: BufferedReader,
-    private val out: PrintStream
+    private val out: PrintStream,
+    private val translations: TranslationProvider
 ) {
 
     private companion object {
         const val TABLE_HEADER = "%3s | %20s | %50s "
         const val MANGA_LINE = "%3d | %20s | %50s "
-
-        const val RESULT_LINE = "[%c] Chapter %d - Page %s"
 
         val formatNumberRange = Regex("^\\d{1,3}-\\d{1,3}$")
     }
@@ -32,9 +32,10 @@ class ConsoleView
      * @return A range of chapter numbers.
      */
     fun askChapterRange(): IntRange {
+        val chapterRangeHint = translations.getText("hint_chapter_range")
         var input: String
         do {
-            printReadHint("Range of chapters to download (format: X-Y)")
+            printReadHint(chapterRangeHint)
             input = `in`.readLine()?.trim()?.takeUnless(String::isEmpty) ?: return IntRange.EMPTY
         } while (!input.matches(formatNumberRange))
 
@@ -67,10 +68,12 @@ class ConsoleView
      * @return A positive or zero integer that may match the id of a manga source, or `-1` if nothing has been typed.
      */
     fun askSourceId(): Long {
+        val mangaIdHint = translations.getText("hint_manga_id")
         var input: String
         do {
-            printReadHint("Type in the number identifier of the manga")
-            input = `in`.readLine()?.trim() ?: return -1L
+            printReadHint(mangaIdHint)
+            // FIXME Not returning -1 when String is blank ???
+            input = `in`.readLine()?.takeIf(String::isNotBlank) ?: return -1L
         } while (!input.all(Char::isDigit))
         return input.toLong()
     }
@@ -88,10 +91,8 @@ class ConsoleView
      */
     fun writeResult(result: LoadResult) {
         val pages = result.pages.joinToString("-")
-        if (result.isSuccessful) {
-            out.println(RESULT_LINE.format('O', result.chapter, pages))
-        } else {
-            out.println(RESULT_LINE.format('X', result.chapter, pages))
-        }
+        val resultMark = if (result.isSuccessful) "O" else "X"
+        val line = translations.getText("result_line", resultMark, result.chapter, pages)
+        out.println(line)
     }
 }
