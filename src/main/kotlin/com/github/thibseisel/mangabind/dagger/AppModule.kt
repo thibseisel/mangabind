@@ -8,6 +8,8 @@ import okhttp3.OkHttpClient
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.io.PrintStream
+import java.util.*
+import java.util.concurrent.TimeUnit
 import javax.inject.Singleton
 
 @Module
@@ -19,7 +21,10 @@ object AppModule {
 
     @JvmStatic
     @Provides @Singleton
-    fun providesHttpClient(): OkHttpClient = OkHttpClient()
+    fun providesHttpClient(): OkHttpClient = OkHttpClient.Builder()
+        .connectTimeout(10L, TimeUnit.SECONDS)
+        .readTimeout(30L, TimeUnit.SECONDS)
+        .build()
 
     @JvmStatic
     @Provides @Singleton
