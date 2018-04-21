@@ -5,7 +5,7 @@ import com.github.thibseisel.mangabind.dagger.FilenameProviderModule
 import com.github.thibseisel.mangabind.source.MangaSource
 import com.github.thibseisel.mangabind.source.SourceLoader
 import kotlinx.coroutines.experimental.*
-import kotlinx.coroutines.experimental.channels.actor
+import kotlinx.coroutines.experimental.channels.*
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.apache.logging.log4j.LogManager
@@ -28,12 +28,6 @@ class Mangabind
     private val outputDir = File(outputDirName)
     private val logger: Logger = LogManager.getFormatterLogger("App")
 
-    private val resultReporter = actor<LoadResult>(start = CoroutineStart.LAZY, capacity = 3) {
-        for (result in channel) {
-            console.writeResult(result)
-        }
-    }
-
     /**
      * Execute the application.
      */
@@ -44,7 +38,6 @@ class Mangabind
         // Load manga sources from catalog.
         val sources = try {
             sourceCatalog.loadAll().sortedBy { it.id }
-
         } catch (ioe: IOException) {
             logger.fatal("Error while loading catalog.", ioe)
             val message = ioe.message ?: "Error while loading manga sources catalog."
@@ -65,37 +58,36 @@ class Mangabind
             outputDir.mkdir()
             val chapterRange = console.askChapterRange()
             for (chapter in chapterRange) {
-                logger.info("Start loading of chapter N°%d...", chapter)
+                logger.info("Start loading chapter N°%d...", chapter)
                 loadChapter(pickedSource, chapter)
             }
 
         } else {
             logger.warn("Manga catalog is empty. Maybe should be filled ?")
-            console.showErrorMessage("No manga sources available.")
+            console.reportEmptyCatalog()
         }
 
+        console.reportTerminated()
         logger.info("Application terminated normally.")
-    }
-
-    /**
-     * Free up resources allocated by the application.
-     * To be called when execution is finished.
-     */
-    fun cleanup() {
-        resultReporter.close()
     }
 
     private fun loadChapter(source: MangaSource, chapter: Int): Unit = runBlocking {
         val chapterDownloadJob = Job()
         val destFilename = source.title.filterNot(Char::isWhitespace) + "_%02d_%02d.%s"
         val destFilenameDoublePage = source.title.filterNot(Char::isWhitespace) + "_%02d_%02d-%02d.%s"
+        var chapterError: Throwable? = null
+
+        val pageResultChannel = Channel<PageResult>(capacity = Channel.UNLIMITED)
 
         // Provide an immutable increasing page number to solve concurrency problems
         val pageIterator = NaturalNumbers(startValue = source.startPage, maxValue = 100)
         var giveLastChance = true
 
+        // Copy available urls to LRU-lists
         val singlePages = LinkedList<String>(source.singlePages)
         val doublePages = LinkedList<String>(source.doublePages ?: emptyList())
+
+        console.updateProgress(chapter)
 
         try {
             page@ while (pageIterator.hasNext()) {
@@ -118,7 +110,7 @@ class Mangabind
                         val filename = destFilename.format(chapter, page, url.substringAfterLast('.'))
                         val destFile = File("pages", filename)
                         writeTo(destFile, imageStream)
-                        resultReporter.send(LoadResult(true, chapter, page..page))
+                        pageResultChannel.send(PageResult(true, chapter, page))
                     }
 
                     // Restore last chance
@@ -151,7 +143,7 @@ class Mangabind
 
                         val destFile = File("pages", filename)
                         writeTo(destFile, imageStream)
-                        resultReporter.send(LoadResult(true, chapter, page..page + 1))
+                        pageResultChannel.send(PageResult(true, chapter, page, isDoublePage = true))
                     }
 
                     // Restore last chance
@@ -164,28 +156,31 @@ class Mangabind
 
                 if (giveLastChance) {
                     logger.info("[%d,%02d] No matching URL. Check for a \"missing page\" scenario...", chapter, page)
-                    resultReporter.send(LoadResult(false, chapter, page..page))
+                    pageResultChannel.send(PageResult(false, chapter, page))
                     giveLastChance = false
                     continue@page
                 }
 
                 logger.info("[%d,%02d] No matching URL found.", chapter, page)
-
-                resultReporter.send(LoadResult(false, chapter, page..page))
                 break@page
             }
 
             logger.debug("Waiting for download tasks to complete...")
             chapterDownloadJob.joinChildren()
 
-            logger.info("Finished downloading chapter %s.\n", chapter)
+            logger.info("Finished downloading chapter %s.", chapter)
 
         } catch (ioe: IOException) {
             logger.error("Unexpected error while loading chapter %d.", chapter, ioe)
-            val error = "Error while loading chapter $chapter of ${source.title}: ${ioe.message}"
-            console.showErrorMessage(error)
             chapterDownloadJob.cancelAndJoin()
+            chapterError = ioe
         }
+
+        pageResultChannel.close()
+        val chapterPagesResult = pageResultChannel.toList()
+            .sortedBy(PageResult::page)
+            .dropLastWhile { !it.isSuccessful }
+        console.writeChapterResult(chapter, chapterPagesResult, chapterError)
     }
 
     @Throws(IOException::class)
@@ -220,18 +215,12 @@ fun main(args: Array<String>) {
     val appComponent = DaggerAppComponent.builder()
         .filenameProviderModule(FilenameProviderModule("pages"))
         .build()
-
-    with (appComponent.mangabind) {
-        run()
-        cleanup()
-    }
-
-    // Press Enter to continue...
-    readLine()
+    appComponent.mangabind.run()
 }
 
-class LoadResult(
+class PageResult(
     val isSuccessful: Boolean,
     val chapter: Int,
-    val pages: IntRange
+    val page: Int,
+    val isDoublePage: Boolean = false
 )

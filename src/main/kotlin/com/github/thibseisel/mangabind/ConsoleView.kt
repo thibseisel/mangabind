@@ -2,6 +2,7 @@ package com.github.thibseisel.mangabind
 
 import com.github.thibseisel.mangabind.i18n.TranslationProvider
 import com.github.thibseisel.mangabind.source.MangaSource
+import kotlinx.coroutines.experimental.*
 import java.io.BufferedReader
 import java.io.PrintStream
 import javax.inject.Inject
@@ -24,6 +25,10 @@ class ConsoleView
 
         val formatNumberRange = Regex("^\\d{1,3}-\\d{1,3}$")
     }
+
+    private data class ChapterProgressHandler(val chapter: Int, val progressJob: Job)
+
+    private var progressHandler: ChapterProgressHandler? = null
 
     private fun printReadHint(hint: String) = out.print("$hint > ")
 
@@ -72,7 +77,6 @@ class ConsoleView
         var input: String
         do {
             printReadHint(mangaIdHint)
-            // FIXME Not returning -1 when String is blank ???
             input = `in`.readLine()?.takeIf(String::isNotBlank) ?: return -1L
         } while (!input.all(Char::isDigit))
         return input.toLong()
@@ -87,12 +91,66 @@ class ConsoleView
     }
 
     /**
-     * Writes the result of downloading a manga page to the console.
+     * Informs users that the manga catalog is empty.
      */
-    fun writeResult(result: LoadResult) {
-        val pages = result.pages.joinToString("-")
-        val resultMark = if (result.isSuccessful) "O" else "X"
-        val line = translations.getText("result_line", resultMark, result.chapter, pages)
-        out.println(line)
+    fun reportEmptyCatalog() {
+        out.println(translations.getText("error_empty_catalog"))
+    }
+
+    /**
+     * Informs that execution is completed and prevents the console from closing itself
+     * until user have pressed a key.
+     */
+    fun reportTerminated() {
+        out.println(translations.getText("info_terminated"))
+        `in`.read()
+    }
+
+    fun updateProgress(chapter: Int) {
+        progressHandler?.let { handler ->
+            if (handler.chapter == chapter) return
+            handler.progressJob.cancel()
+            out.println()
+        }
+
+        progressHandler = ChapterProgressHandler(chapter, launch {
+            val chapterLine = translations.getText("chapter_downloading").format(chapter)
+            var counter = 0
+
+            while (isActive) {
+                if (counter == 0) {
+                    out.print('\r')
+                    out.print(chapterLine)
+                }
+
+                out.print('.')
+                counter = (counter + 1) % 3
+                delay(300L)
+            }
+        })
+    }
+
+    fun writeChapterResult(chapter: Int, pages: List<PageResult>, error: Throwable?) = runBlocking {
+        progressHandler?.progressJob?.cancelAndJoin()
+        progressHandler = null
+        out.print('\r')
+
+        val lastPageNumber = pages.last().let { if (it.isDoublePage) it.page + 1 else it.page }
+
+        if (error == null) {
+            out.println(translations.getText("result_chapter_success").format(chapter, lastPageNumber))
+            val missingPages = pages.asSequence()
+                .filterNot(PageResult::isSuccessful)
+                .map { if (it.isDoublePage) "${it.page}-${it.page + 1}" else it.page.toString() }
+                .joinToString(", ")
+
+            if (missingPages.isNotEmpty()) {
+                out.println(translations.getText("result_missing_pages").format(missingPages))
+            }
+
+        } else {
+            out.println(translations.getText("result_chapter_error").format(chapter))
+            out.println(error.localizedMessage)
+        }
     }
 }
