@@ -135,7 +135,7 @@ class ConsoleView
         progressHandler = null
         out.print('\r')
 
-        val lastPageNumber = pages.last().let { if (it.isDoublePage) it.page + 1 else it.page }
+        val lastPageNumber = pages.lastOrNull()?.let { if (it.isDoublePage) it.page + 1 else it.page } ?: 0
 
         if (error == null) {
             out.println(translations.getText("result_chapter_success").format(chapter, lastPageNumber))
