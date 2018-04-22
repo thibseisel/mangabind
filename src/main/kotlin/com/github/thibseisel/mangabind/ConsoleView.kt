@@ -117,28 +117,38 @@ class ConsoleView
             val chapterLine = translations.getText("chapter_downloading").format(chapter)
             var counter = 0
 
+            // Displays a progress spinner along the chapter number under download.
             while (isActive) {
-                if (counter == 0) {
-                    out.print('\r')
-                    out.print(chapterLine)
-                }
+                out.print('\r')
+                out.print(chapterLine)
+                out.print(' ')
 
-                out.print('.')
-                counter = (counter + 1) % 3
-                delay(300L)
+                out.print(when (counter) {
+                    1 -> '/'
+                    2 -> '-'
+                    3 -> '\\'
+                    else -> '|'
+                })
+
+                counter = (counter + 1) % 4
+                delay(20L)
             }
         })
     }
 
     fun writeChapterResult(chapter: Int, pages: List<PageResult>, error: Throwable?) = runBlocking {
-        progressHandler?.progressJob?.cancelAndJoin()
+        progressHandler?.progressJob?.let {
+            it.cancelAndJoin()
+            out.print('\r')
+        }
+
         progressHandler = null
-        out.print('\r')
 
         val lastPageNumber = pages.lastOrNull()?.let { if (it.isDoublePage) it.page + 1 else it.page } ?: 0
 
         if (error == null) {
-            out.println(translations.getText("result_chapter_success").format(chapter, lastPageNumber))
+            val message = translations.getText("result_chapter_success").format(chapter, lastPageNumber)
+            out.println(message.padEnd(80, ' '))
             val missingPages = pages.asSequence()
                 .filterNot(PageResult::isSuccessful)
                 .map { if (it.isDoublePage) "${it.page}-${it.page + 1}" else it.page.toString() }
@@ -149,7 +159,8 @@ class ConsoleView
             }
 
         } else {
-            out.println(translations.getText("result_chapter_error").format(chapter))
+            val message = translations.getText("result_chapter_error").format(chapter)
+            out.println(message.padEnd(80, ' '))
             out.println(error.localizedMessage)
         }
     }
