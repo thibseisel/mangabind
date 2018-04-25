@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.layout.VBox?>
+
+
+<VBox xmlns="http://javafx.com/javafx/8.0.121"
+      xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.github.thibseisel.mangabind.ui.MangaCellController"
+      alignment="CENTER_LEFT"
+      minHeight="72.0">
+    <padding>
+        <Insets left="16.0" right="16.0"/>
+    </padding>
+    <Label fx:id="title"/>
+    <Label fx:id="origin"/>
+</VBox>

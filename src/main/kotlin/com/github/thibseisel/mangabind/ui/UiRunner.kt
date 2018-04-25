@@ -2,19 +2,19 @@ package com.github.thibseisel.mangabind.ui
 
 import javafx.application.Application
 import javafx.fxml.FXMLLoader
+import javafx.scene.Parent
 import javafx.scene.Scene
-import javafx.scene.layout.BorderPane
 import javafx.stage.Stage
 
+/**
+ * Defines the entry point for the Graphical User Interface application.
+ */
 class UiRunner : Application() {
 
     override fun start(primaryStage: Stage) {
         primaryStage.title = "MangaBind"
 
-        val rootLayout: BorderPane = FXMLLoader().apply {
-            location = UiRunner::class.java.getResource("/layout/mangalist.fxml")
-        }.load()
-
+        val rootLayout = FXMLLoader.load<Parent>(UiRunner::class.java.getResource("/layout/main.fxml"))
         primaryStage.scene = Scene(rootLayout)
         primaryStage.show()
     }
