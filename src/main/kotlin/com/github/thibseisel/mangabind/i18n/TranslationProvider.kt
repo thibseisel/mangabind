@@ -13,7 +13,7 @@ import javax.inject.Inject
 class TranslationProvider
 @Inject constructor() {
 
-    private val bundle = ResourceBundle.getBundle("strings", Locale.getDefault())
+    private val bundle = ResourceBundle.getBundle("values/strings", Locale.getDefault())
 
     /**
      * Returns a translated String identified by its unique [key], substituting the specified format arguments if any.
