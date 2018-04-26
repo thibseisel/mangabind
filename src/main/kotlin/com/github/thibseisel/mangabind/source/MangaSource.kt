@@ -4,7 +4,6 @@ import com.fasterxml.jackson.annotation.JsonCreator
 import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.github.thibseisel.mangabind.toUrl
-import java.net.URL
 
 /**
  * Representation of a manga whose chapters are available through a remote server.
