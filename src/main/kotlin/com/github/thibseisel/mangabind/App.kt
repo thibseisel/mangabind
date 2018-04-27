@@ -1,6 +1,6 @@
 package com.github.thibseisel.mangabind
 
-import com.github.thibseisel.mangabind.dagger.DaggerConsoleComponent
+import com.github.thibseisel.mangabind.cli.DaggerConsoleComponent
 import com.github.thibseisel.mangabind.dagger.FilenameProviderModule
 import com.github.thibseisel.mangabind.source.MangaSource
 import com.github.thibseisel.mangabind.source.MangaRepository

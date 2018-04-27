@@ -5,12 +5,11 @@ import com.fasterxml.jackson.databind.JsonMappingException
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.type.CollectionType
 import java.io.File
-import java.io.FileNotFoundException
 import java.io.IOException
 import javax.inject.Inject
 import javax.inject.Named
 
-class LocalJsonFileLoader
+class JsonFileRepository
 @Inject constructor(
     private val mapper: ObjectMapper,
     @Named("catalog") private val filepath: String
@@ -21,23 +20,32 @@ class LocalJsonFileLoader
         MangaSource::class.java
     )
 
+    private val catalogFile = File(filepath)
+    private val memoryCache = mutableListOf<MangaSource>()
+
     override fun getAll(): List<MangaSource> {
-        File(filepath).takeIf(File::exists)?.let {
-            return try {
-                mapper.readValue(it, sourceListType)
+        return File(filepath).takeIf(File::exists)?.let {
+            try {
+                mapper.readValue<List<MangaSource>>(it, sourceListType).also {
+                    memoryCache.clear()
+                    memoryCache += it
+                }
             } catch (jpe: JsonParseException) {
                 throw IOException("Cannot read manga catalog: file contains malformed JSON.")
             } catch (jme: JsonMappingException) {
                 throw IOException("Cannot read manga catalog: file content cannot be interpreted as manga sources.")
             }
-        } ?: throw FileNotFoundException("Cannot read manga catalog: cannot find file $filepath")
+        } ?: emptyList()
     }
 
     override fun save(manga: MangaSource) {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        memoryCache.removeIf { it.id == manga.id }
+        memoryCache += manga
+        mapper.writeValue(catalogFile, memoryCache)
     }
 
     override fun delete(manga: MangaSource) {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        memoryCache.removeIf { it.id == manga.id }
+        mapper.writeValue(catalogFile, memoryCache)
     }
 }
