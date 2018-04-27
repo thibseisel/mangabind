@@ -6,6 +6,11 @@ import dagger.Component
 import javafx.stage.Stage
 import javax.inject.Singleton
 
+/**
+ * The main Dagger component for the Graphical Interface entry point.
+ * Its is bound to the whole application scope and should be initialized
+ * as soon as the graphical framework is ready.
+ */
 @Singleton
 @Component(modules = [
     AppModule::class,
@@ -16,7 +21,7 @@ interface UiComponent {
 
     @Component.Builder
     interface Builder {
-        @BindsInstance fun bindsPrimaryStage(primaryState: Stage): Builder
+        @BindsInstance fun bindsPrimaryStage(primaryStage: Stage): Builder
         fun filenameProvider(module: FilenameProviderModule): Builder
         fun build(): UiComponent
     }

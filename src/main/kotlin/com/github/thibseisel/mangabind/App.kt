@@ -1,9 +1,9 @@
 package com.github.thibseisel.mangabind
 
-import com.github.thibseisel.mangabind.dagger.DaggerAppComponent
+import com.github.thibseisel.mangabind.dagger.DaggerConsoleComponent
 import com.github.thibseisel.mangabind.dagger.FilenameProviderModule
 import com.github.thibseisel.mangabind.source.MangaSource
-import com.github.thibseisel.mangabind.source.SourceLoader
+import com.github.thibseisel.mangabind.source.MangaRepository
 import kotlinx.coroutines.experimental.*
 import kotlinx.coroutines.experimental.channels.*
 import okhttp3.OkHttpClient
@@ -19,10 +19,10 @@ import javax.inject.Named
 
 class Mangabind
 @Inject constructor(
-    private val console: ConsoleView,
-    private val httpClient: OkHttpClient,
-    private val sourceCatalog: SourceLoader,
-    @Named("outputDir") outputDirName: String
+        private val console: ConsoleView,
+        private val httpClient: OkHttpClient,
+        private val sourceCatalog: MangaRepository,
+        @Named("outputDir") outputDirName: String
 ) {
 
     private val outputDir = File(outputDirName)
@@ -37,7 +37,7 @@ class Mangabind
 
         // Load manga sources from catalog.
         val sources = try {
-            sourceCatalog.loadAll().sortedBy { it.id }
+            sourceCatalog.getAll().sortedBy { it.id }
         } catch (ioe: IOException) {
             logger.fatal("Error while loading catalog.", ioe)
             val message = ioe.message ?: "Error while loading manga sources catalog."
@@ -108,8 +108,10 @@ class Mangabind
 
                     launch(parent = chapterDownloadJob) {
                         val filename = destFilename.format(chapter, page, url.substringAfterLast('.'))
-                        val destFile = File("pages", filename)
-                        writeTo(destFile, imageStream)
+                        imageStream.buffered().use {
+                            val destFile = File("pages", filename)
+                            writeTo(destFile, it)
+                        }
                         pageResultChannel.send(PageResult(true, chapter, page))
                     }
 
@@ -141,8 +143,11 @@ class Mangabind
                             url.substringAfterLast('.')
                         )
 
-                        val destFile = File("pages", filename)
-                        writeTo(destFile, imageStream)
+                        imageStream.buffered().use {
+                            val destFile = File("pages", filename)
+                            writeTo(destFile, it)
+                        }
+
                         pageResultChannel.send(PageResult(true, chapter, page, isDoublePage = true))
                     }
 
@@ -201,7 +206,7 @@ class Mangabind
     @Throws(IOException::class)
     private fun writeTo(file: File, imageBytes: InputStream) {
         val buffer = ByteArray(8 * 1024)
-        file.outputStream().use { out ->
+        file.outputStream().buffered().use { out ->
             var read: Int = imageBytes.read(buffer)
             while (read != -1) {
                 out.write(buffer, 0, read)
@@ -212,7 +217,7 @@ class Mangabind
 }
 
 fun main(args: Array<String>) {
-    val appComponent = DaggerAppComponent.builder()
+    val appComponent = DaggerConsoleComponent.builder()
         .filenameProviderModule(FilenameProviderModule("pages"))
         .build()
     appComponent.mangabind.run()

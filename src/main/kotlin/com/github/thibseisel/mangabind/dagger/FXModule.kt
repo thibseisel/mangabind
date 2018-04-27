@@ -3,18 +3,21 @@ package com.github.thibseisel.mangabind.dagger
 import dagger.Module
 import dagger.Provides
 import javafx.fxml.FXMLLoader
+import java.util.*
 
-@Module(includes = [
-    FxControllerFactoryModule::class
-])
-object FXModule {
+@Module(includes = [FxControllerFactoryModule::class])
+class FXModule {
 
     /**
-     * Provides a [FXMLLoader] configured with the [FXControllerFactory], allowing to create controller instances
-     * with Dagger-injected dependencies.
+     * Provides a [FXMLLoader] configured with the [FXControllerFactory] to allow creating controller instances
+     * with Dagger-injected dependencies, and the [ResourceBundle] to translate strings refered in FXML.
      */
-    @JvmStatic @Provides
-    fun providesFXmlLoader(factory: FXControllerFactory) = FXMLLoader().apply {
+    @Provides
+    fun providesFXmlLoader(
+            factory: FXControllerFactory,
+            translations: ResourceBundle
+    ) = FXMLLoader().apply {
         controllerFactory = factory
+        resources = translations
     }
 }

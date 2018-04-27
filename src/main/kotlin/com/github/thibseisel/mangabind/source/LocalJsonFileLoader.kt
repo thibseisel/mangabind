@@ -14,14 +14,14 @@ class LocalJsonFileLoader
 @Inject constructor(
     private val mapper: ObjectMapper,
     @Named("catalog") private val filepath: String
-) : SourceLoader {
+) : MangaRepository {
 
     private val sourceListType: CollectionType = mapper.typeFactory.constructCollectionType(
         List::class.java,
         MangaSource::class.java
     )
 
-    override fun loadAll(): List<MangaSource> {
+    override fun getAll(): List<MangaSource> {
         File(filepath).takeIf(File::exists)?.let {
             return try {
                 mapper.readValue(it, sourceListType)
@@ -31,5 +31,13 @@ class LocalJsonFileLoader
                 throw IOException("Cannot read manga catalog: file content cannot be interpreted as manga sources.")
             }
         } ?: throw FileNotFoundException("Cannot read manga catalog: cannot find file $filepath")
+    }
+
+    override fun save(manga: MangaSource) {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
+    override fun delete(manga: MangaSource) {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 }

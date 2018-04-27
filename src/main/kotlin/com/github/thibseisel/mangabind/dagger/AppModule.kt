@@ -13,24 +13,18 @@ import java.util.concurrent.TimeUnit
 import javax.inject.Singleton
 
 @Module
-object AppModule {
+class AppModule {
 
-    @JvmStatic
     @Provides @Singleton
     fun providesJacksonMapper(): ObjectMapper = jacksonObjectMapper()
 
-    @JvmStatic
     @Provides @Singleton
     fun providesHttpClient(): OkHttpClient = OkHttpClient.Builder()
         .connectTimeout(10L, TimeUnit.SECONDS)
         .readTimeout(30L, TimeUnit.SECONDS)
         .build()
 
-    @JvmStatic
     @Provides @Singleton
-    fun providesStandardInput(): BufferedReader = BufferedReader(InputStreamReader(System.`in`))
-
-    @JvmStatic
-    @Provides @Singleton
-    fun providesStandardOutput(): PrintStream = System.out
+    fun providesTranslationBundle(): ResourceBundle =
+            ResourceBundle.getBundle("values/strings", Locale.getDefault())
 }

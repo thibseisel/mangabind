@@ -11,10 +11,9 @@ import javax.inject.Inject
  * following the naming convention of the [ResourceBundle] class.
  */
 class TranslationProvider
-@Inject constructor() {
-
-    private val bundle = ResourceBundle.getBundle("values/strings", Locale.getDefault())
-
+@Inject constructor(
+        private val bundle: ResourceBundle
+) {
     /**
      * Returns a translated String identified by its unique [key], substituting the specified format arguments if any.
      *
@@ -28,7 +27,7 @@ class TranslationProvider
     fun getText(key: String, vararg formatArgs: Any): String {
         return try {
             val text = bundle.getString(key)
-            if (formatArgs.isEmpty()) text else text.format(formatArgs)
+            if (formatArgs.isEmpty()) text else text.format(*formatArgs)
         } catch (mre: MissingResourceException) {
             throw IllegalArgumentException("No translation with key \"$key\" has been defined.")
         }

@@ -2,7 +2,7 @@ package com.github.thibseisel.mangabind.ui
 
 import com.github.thibseisel.mangabind.dagger.FXController
 import com.github.thibseisel.mangabind.source.MangaSource
-import com.github.thibseisel.mangabind.source.SourceLoader
+import com.github.thibseisel.mangabind.source.MangaRepository
 import javafx.fxml.FXML
 import javafx.scene.Parent
 import javafx.scene.control.ListView
@@ -17,7 +17,7 @@ import javax.inject.Inject
 
 class MainController
 @Inject constructor(
-        private val sourceLoader: SourceLoader
+        private val mangaRepository: MangaRepository
 ) : FXController {
 
     @FXML
@@ -59,6 +59,6 @@ class MainController
     }
 
     private suspend fun loadSourcesAsync(): List<MangaSource> = withContext(CommonPool) {
-        sourceLoader.loadAll()
+        mangaRepository.getAll()
     }
 }

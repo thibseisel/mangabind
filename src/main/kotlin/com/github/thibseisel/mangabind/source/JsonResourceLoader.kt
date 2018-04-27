@@ -4,8 +4,6 @@ import com.fasterxml.jackson.core.JsonParseException
 import com.fasterxml.jackson.databind.JsonMappingException
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.type.CollectionType
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import org.jetbrains.annotations.TestOnly
 import java.io.FileNotFoundException
 import java.io.IOException
 import javax.inject.Inject
@@ -23,7 +21,7 @@ class JsonResourceLoader
 @Inject constructor(
     private val mapper: ObjectMapper,
     @Named("catalog") private val filename: String
-): SourceLoader {
+): MangaRepository {
 
     private val sourceListType: CollectionType = mapper.typeFactory.constructCollectionType(
             List::class.java,
@@ -31,7 +29,7 @@ class JsonResourceLoader
     )
 
     @Throws(IOException::class)
-    override fun loadAll(): List<MangaSource> {
+    override fun getAll(): List<MangaSource> {
         Thread.currentThread().contextClassLoader.getResourceAsStream(filename)?.let {
             return try {
                 mapper.readValue(it, sourceListType)
@@ -42,5 +40,13 @@ class JsonResourceLoader
             }
 
         } ?: throw FileNotFoundException("Cannot read manga catalog: file not found.")
+    }
+
+    override fun save(manga: MangaSource) {
+        TODO()
+    }
+
+    override fun delete(manga: MangaSource) {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 }

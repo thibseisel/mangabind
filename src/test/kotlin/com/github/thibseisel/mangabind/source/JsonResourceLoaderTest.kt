@@ -13,13 +13,13 @@ class JsonResourceLoaderTest {
     @Test(expected = FileNotFoundException::class)
     fun whenFileDoesNotExists_throwsIOException() {
         val loader = JsonResourceLoader(mapper, "unavailable_file.json")
-        loader.loadAll()
+        loader.getAll()
     }
 
     @Test
     fun whenReadingValidEmptyFile_returnsEmptyList() {
         val loader = JsonResourceLoader(mapper, "empty.json")
-        val sources = loader.loadAll()
+        val sources = loader.getAll()
 
         assertTrue(sources.isEmpty())
     }
@@ -27,12 +27,12 @@ class JsonResourceLoaderTest {
     @Test(expected = IOException::class)
     fun whenReadingMalformedJson_throwsIOException() {
         val loader = JsonResourceLoader(mapper, "malformed.json")
-        loader.loadAll()
+        loader.getAll()
     }
 
     @Test(expected = IOException::class)
     fun whenReadingInvalidData_throwsIOException() {
         val loader = JsonResourceLoader(mapper, "invalid.json")
-        loader.loadAll()
+        loader.getAll()
     }
 }
