@@ -1,5 +1,6 @@
-package com.github.thibseisel.mangabind
+package com.github.thibseisel.mangabind.cli
 
+import com.github.thibseisel.mangabind.PageResult
 import com.github.thibseisel.mangabind.i18n.TranslationProvider
 import com.github.thibseisel.mangabind.source.MangaSource
 import kotlinx.coroutines.experimental.*
@@ -56,7 +57,8 @@ class ConsoleView
         println(TABLE_HEADER.format("ID", "MANGA TITLE", "SOURCE URL"))
         println("-".repeat(80))
         for (manga in sources) {
-            out.println(MANGA_LINE.format(
+            out.println(
+                MANGA_LINE.format(
                     manga.id,
                     manga.title.take(20),
                     manga.origin.take(50)
@@ -114,7 +116,7 @@ class ConsoleView
         }
 
         progressHandler = ChapterProgressHandler(chapter, launch {
-            val chapterLine = translations.getText("chapter_downloading").format(chapter)
+            val chapterLine = translations.getText("chapter_downloading", chapter)
             var counter = 0
 
             // Displays a progress spinner along the chapter number under download.
@@ -123,12 +125,14 @@ class ConsoleView
                 out.print(chapterLine)
                 out.print(' ')
 
-                out.print(when (counter) {
-                    1 -> '/'
-                    2 -> '-'
-                    3 -> '\\'
-                    else -> '|'
-                })
+                out.print(
+                    when (counter) {
+                        1 -> '/'
+                        2 -> '-'
+                        3 -> '\\'
+                        else -> '|'
+                    }
+                )
 
                 counter = (counter + 1) % 4
                 delay(20L)
@@ -147,7 +151,7 @@ class ConsoleView
         val lastPageNumber = pages.lastOrNull()?.let { if (it.isDoublePage) it.page + 1 else it.page } ?: 0
 
         if (error == null) {
-            val message = translations.getText("result_chapter_success").format(chapter, lastPageNumber)
+            val message = translations.getText("result_chapter_success", chapter, lastPageNumber)
             out.println(message.padEnd(80, ' '))
             val missingPages = pages.asSequence()
                 .filterNot(PageResult::isSuccessful)
@@ -155,11 +159,11 @@ class ConsoleView
                 .joinToString(", ")
 
             if (missingPages.isNotEmpty()) {
-                out.println(translations.getText("result_missing_pages").format(missingPages))
+                out.println(translations.getText("result_missing_pages", missingPages))
             }
 
         } else {
-            val message = translations.getText("result_chapter_error").format(chapter)
+            val message = translations.getText("result_chapter_error", chapter)
             out.println(message.padEnd(80, ' '))
             out.println(error.localizedMessage)
         }
