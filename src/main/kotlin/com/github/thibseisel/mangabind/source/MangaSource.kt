@@ -8,7 +8,7 @@ import com.github.thibseisel.mangabind.toUrl
 /**
  * Representation of a manga whose chapters are available through a remote server.
  */
-class MangaSource
+data class MangaSource
 @JsonCreator constructor(
 
         /**
@@ -22,6 +22,12 @@ class MangaSource
          */
         @JsonProperty("title")
         val title: String,
+
+        /**
+         * The author of the manga this resource represents.
+         */
+        @JsonProperty("author")
+        val author: String?,
 
         /**
          * The index of the first page of the chapter.

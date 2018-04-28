@@ -13,6 +13,10 @@
                 "type": "string",
                 "description": "The display title of the manga whose scans are to be downloaded."
             },
+            "author": {
+                "type": "string",
+                "description": "The author of that manga."
+            },
             "single_pages": {
                 "type": "array",
                 "description": "A list of template URLs pointing to the image files to download. If a template fails to load, a new attempt to load an image using the next template will be made, until one is successful or all failed.",
