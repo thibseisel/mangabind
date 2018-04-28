@@ -1,4 +1,4 @@
-package com.github.thibseisel.mangabind.dagger
+package com.github.thibseisel.mangabind.ui
 
 import dagger.Module
 import dagger.Provides
@@ -14,8 +14,8 @@ class FXModule {
      */
     @Provides
     fun providesFXmlLoader(
-            factory: FXControllerFactory,
-            translations: ResourceBundle
+        factory: FXControllerFactory,
+        translations: ResourceBundle
     ) = FXMLLoader().apply {
         controllerFactory = factory
         resources = translations

@@ -1,12 +1,15 @@
 package com.github.thibseisel.mangabind.ui
 
-import com.github.thibseisel.mangabind.dagger.DaggerUiComponent
 import com.github.thibseisel.mangabind.dagger.FilenameProviderModule
 import javafx.application.Application
 import javafx.fxml.FXMLLoader
 import javafx.scene.Parent
 import javafx.scene.Scene
 import javafx.stage.Stage
+import kotlinx.coroutines.experimental.Job
+import kotlinx.coroutines.experimental.cancelAndJoin
+import kotlinx.coroutines.experimental.joinChildren
+import kotlinx.coroutines.experimental.runBlocking
 import javax.inject.Inject
 
 /**
@@ -14,6 +17,7 @@ import javax.inject.Inject
  */
 class UiRunner : Application() {
 
+    @Inject lateinit var parentJob: Job
     @Inject lateinit var fxmlLoader: FXMLLoader
 
     override fun start(primaryStage: Stage) {
@@ -30,6 +34,10 @@ class UiRunner : Application() {
         val rootLayout = fxmlLoader.load<Parent>()
         primaryStage.scene = Scene(rootLayout)
         primaryStage.show()
+    }
+
+    override fun stop() = runBlocking {
+        parentJob.cancelAndJoin()
     }
 }
 

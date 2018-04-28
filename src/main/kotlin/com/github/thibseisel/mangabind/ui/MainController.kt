@@ -1,18 +1,15 @@
 package com.github.thibseisel.mangabind.ui
 
-import com.github.thibseisel.mangabind.dagger.FXController
-import com.github.thibseisel.mangabind.source.MangaSource
 import com.github.thibseisel.mangabind.source.MangaRepository
+import com.github.thibseisel.mangabind.source.MangaSource
 import javafx.fxml.FXML
 import javafx.scene.Parent
 import javafx.scene.control.ListView
 import javafx.scene.control.Slider
 import javafx.scene.control.TextField
-import kotlinx.coroutines.experimental.CommonPool
-import kotlinx.coroutines.experimental.CoroutineStart
+import kotlinx.coroutines.experimental.channels.consumeEach
 import kotlinx.coroutines.experimental.javafx.JavaFx
 import kotlinx.coroutines.experimental.launch
-import kotlinx.coroutines.experimental.withContext
 import javax.inject.Inject
 
 class MainController
@@ -44,21 +41,26 @@ class MainController
     @FXML
     override fun initialize() {
         mangaListView.setCellFactory { _ -> MangaCell() }
+        mangaListView.setOnMouseClicked { _ ->
+            val selectedSource = mangaListView.selectionModel.selectedItem
+            showDetails(selectedSource)
+        }
 
-        launch(JavaFx, start = CoroutineStart.UNDISPATCHED) {
-            val mangas = loadSourcesAsync()
-            mangaListView.items.setAll(mangas)
+        mangaDetailPane.isVisible = false
 
-            mangas.firstOrNull()?.let {
-                titleInput.text = it.title
-                startPageSlider.value = it.startPage.toDouble()
-                templateListView.items.setAll(it.singlePages)
-                doublePageListView.items.setAll(it.doublePages ?: emptyList())
+        launch(JavaFx) {
+            mangaRepository.getAll().consumeEach { sources ->
+                mangaListView.items.setAll(sources)
             }
         }
     }
 
-    private suspend fun loadSourcesAsync(): List<MangaSource> = withContext(CommonPool) {
-        mangaRepository.getAll()
+    private fun showDetails(source: MangaSource) {
+        mangaDetailPane.isVisible = true
+        titleInput.text = source.title
+        authorInput.text = source.author
+        startPageSlider.value = source.startPage.toDouble()
+        templateListView.items.setAll(source.singlePages)
+        doublePageListView.items.setAll(source.doublePages ?: emptyList())
     }
 }

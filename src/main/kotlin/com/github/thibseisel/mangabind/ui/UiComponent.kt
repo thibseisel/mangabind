@@ -1,6 +1,8 @@
-package com.github.thibseisel.mangabind.dagger
+package com.github.thibseisel.mangabind.ui
 
-import com.github.thibseisel.mangabind.ui.UiRunner
+import com.github.thibseisel.mangabind.dagger.AppModule
+import com.github.thibseisel.mangabind.dagger.FileModule
+import com.github.thibseisel.mangabind.dagger.FilenameProviderModule
 import dagger.BindsInstance
 import dagger.Component
 import javafx.stage.Stage

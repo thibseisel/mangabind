@@ -1,5 +1,6 @@
 package com.github.thibseisel.mangabind
 
+import com.github.thibseisel.mangabind.cli.ConsoleView
 import com.github.thibseisel.mangabind.cli.DaggerConsoleComponent
 import com.github.thibseisel.mangabind.dagger.FilenameProviderModule
 import com.github.thibseisel.mangabind.source.MangaSource
@@ -19,10 +20,10 @@ import javax.inject.Named
 
 class Mangabind
 @Inject constructor(
-        private val console: ConsoleView,
-        private val httpClient: OkHttpClient,
-        private val sourceCatalog: MangaRepository,
-        @Named("outputDir") outputDirName: String
+    private val console: ConsoleView,
+    private val httpClient: OkHttpClient,
+    private val sourceCatalog: MangaRepository,
+    @Named("outputDir") outputDirName: String
 ) {
 
     private val outputDir = File(outputDirName)
@@ -31,18 +32,18 @@ class Mangabind
     /**
      * Execute the application.
      */
-    fun run() {
+    fun run() = runBlocking {
 
         logger.info("Starting application.")
 
         // Load manga sources from catalog.
         val sources = try {
-            sourceCatalog.getAll().sortedBy { it.id }
+            sourceCatalog.getAll().receive()
         } catch (ioe: IOException) {
             logger.fatal("Error while loading catalog.", ioe)
             val message = ioe.message ?: "Error while loading manga sources catalog."
             console.showErrorMessage(message)
-            return
+            return@runBlocking
         }
 
         if (sources.isNotEmpty()) {
@@ -51,7 +52,7 @@ class Mangabind
             var pickedSource: MangaSource? = null
             while (pickedSource == null) {
                 val sourceId = console.askSourceId()
-                if (sourceId < 0) return
+                if (sourceId < 0) return@runBlocking
                 pickedSource = sources.firstOrNull { it.id == sourceId }
             }
 

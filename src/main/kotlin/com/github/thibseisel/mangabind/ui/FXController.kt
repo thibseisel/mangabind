@@ -1,4 +1,4 @@
-package com.github.thibseisel.mangabind.dagger
+package com.github.thibseisel.mangabind.ui
 
 import javafx.fxml.Initializable
 import javafx.fxml.FXML

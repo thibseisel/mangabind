@@ -1,6 +1,5 @@
-package com.github.thibseisel.mangabind.dagger
+package com.github.thibseisel.mangabind.ui
 
-import com.github.thibseisel.mangabind.ui.MainController
 import dagger.Binds
 import dagger.MapKey
 import dagger.Module
@@ -17,6 +16,7 @@ import kotlin.reflect.KClass
  * This is required for dependencies to be injected as constructor parameters.
  */
 @Module
+@Suppress("unused")
 abstract class FxControllerFactoryModule {
 
     @Binds @IntoMap
