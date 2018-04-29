@@ -5,7 +5,6 @@ import com.fasterxml.jackson.databind.JsonMappingException
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.type.CollectionType
 import kotlinx.coroutines.experimental.Job
-import kotlinx.coroutines.experimental.channels.BroadcastChannel
 import kotlinx.coroutines.experimental.channels.Channel
 import kotlinx.coroutines.experimental.channels.ReceiveChannel
 import kotlinx.coroutines.experimental.launch
@@ -64,11 +63,13 @@ class JsonFileRepository
                 outChannel?.send(sourcesFromFile)
 
             } catch (jpe: JsonParseException) {
-                throw IOException("Cannot read manga catalog: file contains malformed JSON.")
+                val malformedCause = IOException("Cannot read manga catalog: file contains malformed JSON.")
+                outChannel?.close(malformedCause)
             } catch (jme: JsonMappingException) {
-                throw IOException("Cannot read manga catalog: file content cannot be interpreted as manga sources.")
+                val schemaCause = IOException("Cannot read manga catalog: file content cannot be interpreted as manga sources.")
+                outChannel?.close(schemaCause)
             }
-        }
+        } ?: outChannel?.send(emptyList())
     }
 
     override fun save(manga: MangaSource) {
