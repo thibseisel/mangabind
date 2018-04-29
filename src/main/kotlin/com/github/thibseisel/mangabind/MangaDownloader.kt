@@ -1,16 +1,12 @@
 package com.github.thibseisel.mangabind
 
-import com.github.thibseisel.mangabind.cli.ConsoleView
-import com.github.thibseisel.mangabind.cli.DaggerConsoleComponent
-import com.github.thibseisel.mangabind.dagger.FilenameProviderModule
 import com.github.thibseisel.mangabind.source.MangaSource
-import com.github.thibseisel.mangabind.source.MangaRepository
 import kotlinx.coroutines.experimental.*
-import kotlinx.coroutines.experimental.channels.*
+import kotlinx.coroutines.experimental.channels.Channel
+import kotlinx.coroutines.experimental.channels.toList
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.apache.logging.log4j.LogManager
-import org.apache.logging.log4j.Logger
 import java.io.File
 import java.io.IOException
 import java.io.InputStream
@@ -18,77 +14,57 @@ import java.util.*
 import javax.inject.Inject
 import javax.inject.Named
 
-class Mangabind
+class MangaDownloader
 @Inject constructor(
-    private val console: ConsoleView,
     private val httpClient: OkHttpClient,
-    private val sourceCatalog: MangaRepository,
     @Named("outputDir") outputDirName: String
 ) {
 
-    private val outputDir = File(outputDirName)
-    private val logger: Logger = LogManager.getFormatterLogger("App")
+    private companion object {
 
-    /**
-     * Execute the application.
-     */
-    fun run() = runBlocking {
+        /**
+         * The template filename for each downloaded page.
+         * It must be formatted using [String.format] with the following parameters:
+         * 1. The number of the chapter this page belongs to
+         * 2. The number of that page
+         * 3. The file extension of the downloaded image.
+         */
+        private const val PAGE_FILENAME = "%02d_%02d.%s"
 
-        logger.info("Starting application.")
-
-        // Load manga sources from catalog.
-        val sources = try {
-            sourceCatalog.getAll().receive()
-        } catch (ioe: IOException) {
-            logger.fatal("Error while loading catalog.", ioe)
-            val message = ioe.message ?: "Error while loading manga sources catalog."
-            console.showErrorMessage(message)
-            return@runBlocking
-        }
-
-        if (sources.isNotEmpty()) {
-            console.displayMangaList(sources)
-
-            var pickedSource: MangaSource? = null
-            while (pickedSource == null) {
-                val sourceId = console.askSourceId()
-                if (sourceId < 0) return@runBlocking
-                pickedSource = sources.firstOrNull { it.id == sourceId }
-            }
-
-            outputDir.mkdir()
-            val chapterRange = console.askChapterRange()
-            for (chapter in chapterRange) {
-                logger.info("Start loading chapter N°%d...", chapter)
-                loadChapter(pickedSource, chapter)
-            }
-
-        } else {
-            logger.warn("Manga catalog is empty. Maybe should be filled ?")
-            console.reportEmptyCatalog()
-        }
-
-        console.reportTerminated()
-        logger.info("Application terminated normally.")
+        /**
+         * The template filename specific to downloaded double-pages.
+         * It must be formatted using [String.format] with the following parameters:
+         * 1. The number of the chapter this page belongs to
+         * 2. The number of the first of that double page
+         * 3. The number of the facing page
+         * 4. The file extension of the downloaded image.
+         */
+        private const val DOUBLE_PAGE_FILENAME = "%02d_%02d-%02d.%s"
     }
 
-    private fun loadChapter(source: MangaSource, chapter: Int): Unit = runBlocking {
+    private val logger = LogManager.getFormatterLogger("MangaDownloader")
+
+    /**
+     * The parent directory where all downloaded pages should be stored.
+     */
+    private val outputDir = File(outputDirName).also {
+        check(!it.exists() || it.isDirectory) { "Output exists but is not a directory" }
+    }
+
+    fun loadChapterAsync(manga: MangaSource, chapter: Int) = async<ChapterResult> {
         val chapterDownloadJob = Job()
-        val destFilename = source.title.filterNot(Char::isWhitespace) + "_%02d_%02d.%s"
-        val destFilenameDoublePage = source.title.filterNot(Char::isWhitespace) + "_%02d_%02d-%02d.%s"
+        val pageResultChannel = Channel<PageResult>(capacity = Channel.UNLIMITED)
         var chapterError: Throwable? = null
 
-        val pageResultChannel = Channel<PageResult>(capacity = Channel.UNLIMITED)
-
-        // Provide an immutable increasing page number to solve concurrency problems
-        val pageIterator = NaturalNumbers(startValue = source.startPage, maxValue = 100)
+        // Provide an immutable increasing page number to solve concurrency problems.
+        val pageIterator = NaturalNumbers(startValue = manga.startPage)
         var giveLastChance = true
 
         // Copy available urls to LRU-lists
-        val singlePages = LinkedList<String>(source.singlePages)
-        val doublePages = LinkedList<String>(source.doublePages ?: emptyList())
+        val singlePages = LinkedList<String>(manga.singlePages)
+        val doublePages = LinkedList<String>(manga.doublePages.orEmpty())
 
-        console.updateProgress(chapter)
+        outputDir.mkdir()
 
         try {
             page@ while (pageIterator.hasNext()) {
@@ -108,9 +84,9 @@ class Mangabind
                     singlePages.addFirst(template)
 
                     launch(parent = chapterDownloadJob) {
-                        val filename = destFilename.format(chapter, page, url.substringAfterLast('.'))
-                        imageStream.buffered().use {
-                            val destFile = File("pages", filename)
+                        val filename = PAGE_FILENAME.format(chapter, page, url.substringAfterLast('.'))
+                        imageStream.use {
+                            val destFile = File(outputDir, filename)
                             writeTo(destFile, it)
                         }
                         pageResultChannel.send(PageResult(true, chapter, page))
@@ -137,7 +113,7 @@ class Mangabind
                     doublePages.addFirst(template)
 
                     launch(parent = chapterDownloadJob) {
-                        val filename = destFilenameDoublePage.format(
+                        val filename = DOUBLE_PAGE_FILENAME.format(
                             chapter,
                             page,
                             page + 1,
@@ -145,7 +121,7 @@ class Mangabind
                         )
 
                         imageStream.buffered().use {
-                            val destFile = File("pages", filename)
+                            val destFile = File(outputDir, filename)
                             writeTo(destFile, it)
                         }
 
@@ -154,7 +130,7 @@ class Mangabind
 
                     // Restore last chance
                     giveLastChance = true
-                    
+
                     // Manually skip one more page to increment the page counter by 2.
                     pageIterator.nextInt()
                     continue@page
@@ -186,7 +162,8 @@ class Mangabind
         val chapterPagesResult = pageResultChannel.toList()
             .sortedBy(PageResult::page)
             .dropLastWhile { !it.isSuccessful }
-        console.writeChapterResult(chapter, chapterPagesResult, chapterError)
+
+        ChapterResult(chapter, chapterPagesResult, chapterError)
     }
 
     @Throws(IOException::class)
@@ -216,17 +193,3 @@ class Mangabind
         }
     }
 }
-
-fun main(args: Array<String>) {
-    val appComponent = DaggerConsoleComponent.builder()
-        .filenameProviderModule(FilenameProviderModule("pages"))
-        .build()
-    appComponent.mangabind.run()
-}
-
-class PageResult(
-    val isSuccessful: Boolean,
-    val chapter: Int,
-    val page: Int,
-    val isDoublePage: Boolean = false
-)

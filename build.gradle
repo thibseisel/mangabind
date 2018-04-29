@@ -68,7 +68,7 @@ kotlin {
 }
 
 // Configure the application's main class.
-mainClassName = 'com.github.thibseisel.mangabind.ui.UiRunnerKt'
+mainClassName = 'com.github.thibseisel.mangabind.cli.ConsoleRunnerKt'
 
 compileKotlin {
     kotlinOptions.jvmTarget = "1.8"

@@ -2,6 +2,7 @@ package com.github.thibseisel.mangabind.cli
 
 import com.github.thibseisel.mangabind.PageResult
 import com.github.thibseisel.mangabind.i18n.TranslationProvider
+import com.github.thibseisel.mangabind.repeat
 import com.github.thibseisel.mangabind.source.MangaSource
 import kotlinx.coroutines.experimental.*
 import java.io.BufferedReader
@@ -34,11 +35,19 @@ class ConsoleView
     private fun printReadHint(hint: String) = out.print("$hint > ")
 
     /**
+     * Prints a welcome message giving the application name and its purpose.
+     */
+    fun printWelcome() {
+        out.println(translations.getText("cliWelcome"))
+        out.println()
+    }
+
+    /**
      * Prompts the user for the range of chapter numbers he wants to download.
      * @return A range of chapter numbers.
      */
     fun askChapterRange(): IntRange {
-        val chapterRangeHint = translations.getText("hint_chapter_range")
+        val chapterRangeHint = translations.getText("hintChapterRange")
         var input: String
         do {
             printReadHint(chapterRangeHint)
@@ -55,7 +64,7 @@ class ConsoleView
      */
     fun displayMangaList(sources: List<MangaSource>) {
         println(TABLE_HEADER.format("ID", "MANGA TITLE", "SOURCE URL"))
-        println("-".repeat(80))
+        println('-'.repeat(80))
         for (manga in sources) {
             out.println(
                 MANGA_LINE.format(
@@ -75,7 +84,7 @@ class ConsoleView
      * @return A positive or zero integer that may match the id of a manga source, or `-1` if nothing has been typed.
      */
     fun askSourceId(): Long {
-        val mangaIdHint = translations.getText("hint_manga_id")
+        val mangaIdHint = translations.getText("hintMangaId")
         var input: String
         do {
             printReadHint(mangaIdHint)
@@ -96,7 +105,7 @@ class ConsoleView
      * Informs users that the manga catalog is empty.
      */
     fun reportEmptyCatalog() {
-        out.println(translations.getText("error_empty_catalog"))
+        out.println(translations.getText("errorEmptyCatalog"))
     }
 
     /**
@@ -104,7 +113,7 @@ class ConsoleView
      * until user have pressed a key.
      */
     fun reportTerminated() {
-        out.println(translations.getText("info_terminated"))
+        out.println(translations.getText("infoTerminated"))
         `in`.read()
     }
 
@@ -116,7 +125,7 @@ class ConsoleView
         }
 
         progressHandler = ChapterProgressHandler(chapter, launch {
-            val chapterLine = translations.getText("chapter_downloading", chapter)
+            val chapterLine = translations.getText("chapterDownloading", chapter)
             var counter = 0
 
             // Displays a progress spinner along the chapter number under download.
@@ -135,7 +144,7 @@ class ConsoleView
                 )
 
                 counter = (counter + 1) % 4
-                delay(20L)
+                delay(125L)
             }
         })
     }
@@ -151,20 +160,20 @@ class ConsoleView
         val lastPageNumber = pages.lastOrNull()?.let { if (it.isDoublePage) it.page + 1 else it.page } ?: 0
 
         if (error == null) {
-            val message = translations.getText("result_chapter_success", chapter, lastPageNumber)
-            out.println(message.padEnd(80, ' '))
+            val message = translations.getText("resultChapterSuccess", chapter, lastPageNumber)
+            out.println(message.padEnd(79, ' '))
             val missingPages = pages.asSequence()
                 .filterNot(PageResult::isSuccessful)
                 .map { if (it.isDoublePage) "${it.page}-${it.page + 1}" else it.page.toString() }
                 .joinToString(", ")
 
             if (missingPages.isNotEmpty()) {
-                out.println(translations.getText("result_missing_pages", missingPages))
+                out.println(translations.getText("resultMissingPages", missingPages))
             }
 
         } else {
-            val message = translations.getText("result_chapter_error", chapter)
-            out.println(message.padEnd(80, ' '))
+            val message = translations.getText("resultChapterError", chapter)
+            out.println(message.padEnd(79, ' '))
             out.println(error.localizedMessage)
         }
     }

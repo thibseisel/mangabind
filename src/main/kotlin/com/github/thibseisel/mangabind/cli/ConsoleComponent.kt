@@ -1,6 +1,5 @@
 package com.github.thibseisel.mangabind.cli
 
-import com.github.thibseisel.mangabind.Mangabind
 import com.github.thibseisel.mangabind.dagger.AppModule
 import com.github.thibseisel.mangabind.dagger.FileModule
 import dagger.Component
@@ -17,5 +16,5 @@ import javax.inject.Singleton
     FileModule::class
 ])
 interface ConsoleComponent {
-    val mangabind: Mangabind
+    val console: ConsoleRunner
 }
