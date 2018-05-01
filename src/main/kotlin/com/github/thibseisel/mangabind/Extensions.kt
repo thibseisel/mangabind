@@ -1,5 +1,6 @@
 package com.github.thibseisel.mangabind
 
+import java.io.File
 import java.net.MalformedURLException
 import java.net.URL
 
@@ -29,3 +30,7 @@ fun Char.repeat(n: Int): String {
  */
 @Throws(MalformedURLException::class)
 fun String.toUrl(): URL = URL(this)
+
+val File.isImageFile get() = isFile && extension.let {
+    it.endsWith("jpg") || it.endsWith("png") || it.endsWith("jpeg")
+}
