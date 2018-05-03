@@ -1,7 +1,6 @@
 package com.github.thibseisel.mangabind.source
 
 import kotlinx.coroutines.experimental.channels.ReceiveChannel
-import java.io.IOException
 
 /**
  * Provides the list of manga resources available to this application.

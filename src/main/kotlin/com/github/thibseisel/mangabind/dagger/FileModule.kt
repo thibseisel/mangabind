@@ -5,7 +5,7 @@ import com.github.thibseisel.mangabind.source.MangaRepository
 import dagger.Binds
 import dagger.Module
 
-@Module(includes = [FilenameProviderModule::class])
+@Module(includes = [FileProviderModule::class])
 abstract class FileModule {
 
     @Binds abstract fun bindsSourceLoader(impl: JsonFileRepository): MangaRepository

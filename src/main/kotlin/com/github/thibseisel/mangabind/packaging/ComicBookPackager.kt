@@ -1,40 +1,50 @@
 package com.github.thibseisel.mangabind.packaging
 
-import com.github.thibseisel.mangabind.isImageFile
 import java.io.File
 import java.io.FileOutputStream
+import java.io.IOException
 import java.util.zip.ZipEntry
+import java.util.zip.ZipException
 import java.util.zip.ZipOutputStream
 import javax.inject.Inject
 import javax.inject.Named
 
+/**
+ * Packages the downloaded images as a CBZ archive file.
+ */
 class ComicBookPackager
 @Inject constructor(
-    @Named("outputDir") tmpPath: String
-) {
+    @Named("tmpDir") private val imagesDir: File
+) : Packager {
 
-    private val imageTempDir = File(tmpPath)
-
-    fun create(cbzFilepath: String) {
-        check(imageTempDir.exists()) {
+    override fun create(dest: String) {
+        check(imagesDir.exists()) {
             "Attempt to create a CBZ file before downloading images"
         }
 
-        val cbzArchive = FileOutputStream(cbzFilepath)
+        val cbzArchive = FileOutputStream(dest)
 
-        ZipOutputStream(cbzArchive).use { zip ->
-            imageTempDir.walkTopDown()
-                .filter(File::isImageFile)
-                .forEachIndexed { index, file ->
-                    val newName = "%02d.%s".format(index, file.name.substringAfterLast('.'))
-                    val entry = ZipEntry(newName)
+        try {
+            ZipOutputStream(cbzArchive).use { zip ->
+                imagesDir.walkTopDown()
+                        .filter(File::isFile)
+                        .forEachIndexed { index, file ->
+                            val newName = "%02d.%s".format(index, file.name.substringAfterLast('.'))
+                            val entry = ZipEntry(newName)
 
-                    zip.putNextEntry(entry)
-                    file.inputStream().use {
-                        it.copyTo(zip)
-                    }
-                    zip.closeEntry()
-                }
+                            zip.putNextEntry(entry)
+                            file.inputStream().use {
+                                it.copyTo(zip)
+                            }
+
+                            zip.closeEntry()
+                        }
+            }
+
+        } catch (ze: ZipException) {
+
+        } catch (ioe: IOException) {
+
         }
     }
 }

@@ -2,7 +2,7 @@ package com.github.thibseisel.mangabind.ui
 
 import com.github.thibseisel.mangabind.dagger.AppModule
 import com.github.thibseisel.mangabind.dagger.FileModule
-import com.github.thibseisel.mangabind.dagger.FilenameProviderModule
+import com.github.thibseisel.mangabind.dagger.FileProviderModule
 import dagger.BindsInstance
 import dagger.Component
 import javafx.stage.Stage
@@ -24,7 +24,7 @@ interface UiComponent {
     @Component.Builder
     interface Builder {
         @BindsInstance fun bindsPrimaryStage(primaryStage: Stage): Builder
-        fun filenameProvider(module: FilenameProviderModule): Builder
+        fun filenameProvider(module: FileProviderModule): Builder
         fun build(): UiComponent
     }
 

@@ -27,4 +27,19 @@ class ExtensionsTest {
         assertEquals(10, actual.length)
         assertTrue(actual.all { it == 'b' })
     }
+
+    @Test
+    fun file_clear() {
+        val folder = createTempDir("folder")
+        createTempFile(directory = folder)
+        createTempFile(directory = folder)
+        val subdir = createTempDir(directory = folder)
+        createTempFile(directory = subdir)
+
+        folder.clear()
+
+        assertTrue("The receiver folder should not have been deleted", folder.isDirectory)
+        val numberOfFiles = folder.list().size
+        assertEquals(0, numberOfFiles)
+    }
 }

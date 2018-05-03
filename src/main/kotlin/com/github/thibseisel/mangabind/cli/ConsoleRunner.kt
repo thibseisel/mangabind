@@ -1,13 +1,15 @@
 package com.github.thibseisel.mangabind.cli
 
 import com.github.thibseisel.mangabind.MangaDownloader
-import com.github.thibseisel.mangabind.dagger.FilenameProviderModule
+import com.github.thibseisel.mangabind.clear
 import com.github.thibseisel.mangabind.source.MangaRepository
 import com.github.thibseisel.mangabind.source.MangaSource
 import kotlinx.coroutines.experimental.runBlocking
 import org.apache.logging.log4j.LogManager
+import java.io.File
 import java.io.IOException
 import javax.inject.Inject
+import javax.inject.Named
 
 /**
  * The main entry point for the Command-Line Interface application.
@@ -16,7 +18,8 @@ class ConsoleRunner
 @Inject constructor(
     private val view: ConsoleView,
     private val mangaRepository: MangaRepository,
-    private val mangaDownloader: MangaDownloader
+    private val mangaDownloader: MangaDownloader,
+    @Named("tmpDir") private val imagesDir: File
 ) {
 
     private val logger = LogManager.getFormatterLogger("Console")
@@ -57,6 +60,9 @@ class ConsoleRunner
         // Get the range of chapter to be downloaded for that manga.
         val chapterRange = view.askChapterRange()
 
+        // Delete images from previous downloads before use.
+        imagesDir.clear()
+
         // Download each chapter sequentially.
         // This may be better to download pages from multiple chapters at the same time,
         // but this makes it harder to display progress in CLI mode.
@@ -78,9 +84,7 @@ class ConsoleRunner
 }
 
 fun main(args: Array<String>) {
-    val dependencies = DaggerConsoleComponent.builder()
-        .filenameProviderModule(FilenameProviderModule("pages"))
-        .build()
+    val dependencies = DaggerConsoleComponent.create()
 
     with(dependencies.console) {
         start()

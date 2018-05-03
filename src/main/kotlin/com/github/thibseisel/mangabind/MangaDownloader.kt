@@ -14,10 +14,16 @@ import java.util.*
 import javax.inject.Inject
 import javax.inject.Named
 
+/**
+ * A service that downloads images of a manga from the internet.
+ *
+ * @param httpClient The HTTP client from the OkHttp library.
+ * @param outputDir The parent directory where all downloaded images should be stored.
+ */
 class MangaDownloader
 @Inject constructor(
     private val httpClient: OkHttpClient,
-    @Named("outputDir") outputDirName: String
+    @Named("tmpDir") private val outputDir: File
 ) {
 
     private companion object {
@@ -36,7 +42,7 @@ class MangaDownloader
          * It must be formatted using [String.format] with the following parameters:
          * 1. The number of the chapter this page belongs to
          * 2. The number of the first of that double page
-         * 3. The number of the facing page
+         * 3. The number of the regarding page
          * 4. The file extension of the downloaded image.
          */
         private const val DOUBLE_PAGE_FILENAME = "%02d_%02d-%02d.%s"
@@ -45,13 +51,15 @@ class MangaDownloader
     private val logger = LogManager.getFormatterLogger("MangaDownloader")
 
     /**
-     * The parent directory where all downloaded pages should be stored.
+     * Asynchronously download a manga chapter from a set of URLs defined by a provided [manga] source
+     * and saves the downloaded images to the configured [output directory][outputDir].
+     *
+     * @param manga The manga to be downloaded.
+     * @param chapter The number of the chapter to be downloaded.
+     *
+     * @return The result of downloading the chapter expressed as a deferred computation.
      */
-    private val outputDir = File(outputDirName).also {
-        check(!it.exists() || it.isDirectory) { "Output exists but is not a directory" }
-    }
-
-    fun loadChapterAsync(manga: MangaSource, chapter: Int) = async<ChapterResult> {
+    fun loadChapterAsync(manga: MangaSource, chapter: Int): Deferred<ChapterResult> = async {
         val chapterDownloadJob = Job()
         val pageResultChannel = Channel<PageResult>(capacity = Channel.UNLIMITED)
         var chapterError: Throwable? = null
@@ -63,8 +71,6 @@ class MangaDownloader
         // Copy available urls to LRU-lists
         val singlePages = LinkedList<String>(manga.singlePages)
         val doublePages = LinkedList<String>(manga.doublePages.orEmpty())
-
-        outputDir.mkdir()
 
         try {
             page@ while (pageIterator.hasNext()) {
@@ -166,6 +172,9 @@ class MangaDownloader
         ChapterResult(chapter, chapterPagesResult, chapterError)
     }
 
+    /**
+     * Initiates an HTTP connection to the specified [url] and returns the response as a stream of bytes if succeeded.
+     */
     @Throws(IOException::class)
     private fun attemptConnection(url: String): InputStream? {
         val response = httpClient.newCall(
@@ -181,6 +190,9 @@ class MangaDownloader
         }
     }
 
+    /**
+     * Write a stream of bytes to a file.
+     */
     @Throws(IOException::class)
     private fun writeTo(file: File, imageBytes: InputStream) {
         val buffer = ByteArray(8 * 1024)

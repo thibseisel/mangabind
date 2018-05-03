@@ -31,6 +31,15 @@ fun Char.repeat(n: Int): String {
 @Throws(MalformedURLException::class)
 fun String.toUrl(): URL = URL(this)
 
-val File.isImageFile get() = isFile && extension.let {
-    it.endsWith("jpg") || it.endsWith("png") || it.endsWith("jpeg")
+/**
+ * Delete recursively all files contained in a directory, without deleting it.
+ * If that file is not a directory or does not exists, this will do nothing.
+ *
+ * @receiver The directory whose content should be cleared.
+ */
+fun File.clear() {
+    if (!isDirectory) return
+    walkBottomUp()
+            .minus(this)
+            .forEach { it.delete() }
 }

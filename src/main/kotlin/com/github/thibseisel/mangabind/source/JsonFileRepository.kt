@@ -20,14 +20,14 @@ import javax.inject.Named
  * @param parentJob The job that will be used as the parent for all coroutines,
  * so that it can wait for its children to complete.
  * @param mapper An utility that maps JSON to Kotlin objects or vice-versa.
- * @param catalogPath The location of a file where sources should be read from or written to.
- * If no such file exists, it will be created.
+ * @param catalogFile a file where sources should be read from or written to.
+ * If no such file exists, it will be created when writing to it.
  */
 class JsonFileRepository
 @Inject constructor(
     private val parentJob: Job,
     private val mapper: ObjectMapper,
-    @Named("catalog") catalogPath: String
+    @Named("catalog") private val catalogFile: File
 ) : MangaRepository {
 
     private val sourceListType: CollectionType = mapper.typeFactory.constructCollectionType(
@@ -41,7 +41,6 @@ class JsonFileRepository
      */
     private val fileThread = newSingleThreadContext("FileAccessor")
 
-    private val catalogFile = File(catalogPath)
     private val memoryCache = mutableListOf<MangaSource>()
 
     private var outChannel: Channel<List<MangaSource>>? = null

@@ -1,6 +1,5 @@
 package com.github.thibseisel.mangabind.ui
 
-import com.github.thibseisel.mangabind.dagger.FilenameProviderModule
 import javafx.application.Application
 import javafx.fxml.FXMLLoader
 import javafx.scene.Parent
@@ -8,7 +7,6 @@ import javafx.scene.Scene
 import javafx.stage.Stage
 import kotlinx.coroutines.experimental.Job
 import kotlinx.coroutines.experimental.cancelAndJoin
-import kotlinx.coroutines.experimental.joinChildren
 import kotlinx.coroutines.experimental.runBlocking
 import javax.inject.Inject
 
@@ -24,7 +22,6 @@ class UiRunner : Application() {
 
         val component = DaggerUiComponent.builder()
                 .bindsPrimaryStage(primaryStage)
-                .filenameProvider(FilenameProviderModule("pages"))
                 .build()
         component.inject(this)
 
