@@ -6,6 +6,7 @@ import com.github.thibseisel.mangabind.repeat
 import com.github.thibseisel.mangabind.source.MangaSource
 import kotlinx.coroutines.experimental.*
 import java.io.BufferedReader
+import java.io.File
 import java.io.PrintStream
 import javax.inject.Inject
 
@@ -176,5 +177,35 @@ class ConsoleView
             out.println(message.padEnd(79, ' '))
             out.println(error.localizedMessage)
         }
+    }
+
+    /**
+     * Asks the user if the downloaded images should be packaged into a CBZ archive file.
+     *
+     * @return `true` if a CBZ file should be created or `false` if downloaded images should be put in a directory.
+     */
+    fun askShouldPackageCbz(): Boolean {
+        out.println(translations.getText("questionPackaging"))
+        val yes = translations.getText("yes")
+        val no = translations.getText("no")
+
+        while(true) {
+            out.println("> ")
+            val answer = `in`.readLine()
+
+            // An empty line selects the default answer "yes"
+            if (answer.isEmpty()) return true
+
+            if (answer.startsWith(yes[0]) || answer == yes) return true
+            if (answer.startsWith(no[0]) || answer == no) return false
+        }
+    }
+
+    /**
+     * Prints a message indicating that the packaging operation finished successfully
+     * and indicates the path of the newly created file or folder.
+     */
+    fun reportPackagingSuccess(outputFile: File) {
+        out.println(translations.getText("packagingSuccess", outputFile.absolutePath))
     }
 }

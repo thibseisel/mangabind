@@ -1,10 +1,7 @@
 package com.github.thibseisel.mangabind.packaging
 
 import java.io.File
-import java.io.FileOutputStream
-import java.io.IOException
 import java.util.zip.ZipEntry
-import java.util.zip.ZipException
 import java.util.zip.ZipOutputStream
 import javax.inject.Inject
 import javax.inject.Named
@@ -14,37 +11,33 @@ import javax.inject.Named
  */
 class ComicBookPackager
 @Inject constructor(
-    @Named("tmpDir") private val imagesDir: File
+        @Named("tmpDir") private val imagesDir: File
 ) : Packager {
 
-    override fun create(dest: String) {
+    override fun create(dest: String): File {
         check(imagesDir.exists()) {
             "Attempt to create a CBZ file before downloading images"
         }
 
-        val cbzArchive = FileOutputStream(dest)
+        val cbzOutFile = File("$dest.cbz")
+        cbzOutFile.parentFile.mkdirs()
 
-        try {
-            ZipOutputStream(cbzArchive).use { zip ->
-                imagesDir.walkTopDown()
-                        .filter(File::isFile)
-                        .forEachIndexed { index, file ->
-                            val newName = "%02d.%s".format(index, file.name.substringAfterLast('.'))
-                            val entry = ZipEntry(newName)
+        ZipOutputStream(cbzOutFile.outputStream()).use { zip ->
+            imagesDir.walkTopDown()
+                    .filter(File::isFile)
+                    .forEachIndexed { index, file ->
+                        val newName = "%02d.%s".format(index, file.name.substringAfterLast('.'))
+                        val entry = ZipEntry(newName)
 
-                            zip.putNextEntry(entry)
-                            file.inputStream().use {
-                                it.copyTo(zip)
-                            }
-
-                            zip.closeEntry()
+                        zip.putNextEntry(entry)
+                        file.inputStream().use {
+                            it.copyTo(zip)
                         }
-            }
 
-        } catch (ze: ZipException) {
-
-        } catch (ioe: IOException) {
-
+                        zip.closeEntry()
+                    }
         }
+
+        return cbzOutFile
     }
 }

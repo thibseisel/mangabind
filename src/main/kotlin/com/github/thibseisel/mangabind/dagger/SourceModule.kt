@@ -5,8 +5,12 @@ import com.github.thibseisel.mangabind.source.MangaRepository
 import dagger.Binds
 import dagger.Module
 
-@Module(includes = [FileProviderModule::class])
-abstract class FileModule {
+/**
+ * A Dagger module for manga sources-related dependencies.
+ */
+@Suppress("unused")
+@Module
+abstract class SourceModule {
 
     @Binds abstract fun bindsSourceLoader(impl: JsonFileRepository): MangaRepository
 }

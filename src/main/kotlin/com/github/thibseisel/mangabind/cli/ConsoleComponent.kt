@@ -1,7 +1,6 @@
 package com.github.thibseisel.mangabind.cli
 
-import com.github.thibseisel.mangabind.dagger.AppModule
-import com.github.thibseisel.mangabind.dagger.FileModule
+import com.github.thibseisel.mangabind.dagger.CommonModule
 import dagger.Component
 import javax.inject.Singleton
 
@@ -11,10 +10,14 @@ import javax.inject.Singleton
  */
 @Singleton
 @Component(modules = [
-    AppModule::class,
-    ConsoleModule::class,
-    FileModule::class
+    CommonModule::class,
+    ConsoleModule::class
 ])
 interface ConsoleComponent {
+
+    /**
+     * Produces an instance of the main entry-point for the console application
+     * with all its dependencies being injected.
+     */
     val console: ConsoleRunner
 }

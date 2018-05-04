@@ -2,22 +2,25 @@ package com.github.thibseisel.mangabind.dagger
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import com.github.thibseisel.mangabind.packaging.PackagingModule
 import dagger.Module
 import dagger.Provides
 import kotlinx.coroutines.experimental.Job
 import okhttp3.OkHttpClient
-import java.io.BufferedReader
-import java.io.InputStreamReader
-import java.io.PrintStream
 import java.util.*
 import java.util.concurrent.TimeUnit
 import javax.inject.Singleton
 
 /**
- * A Dagger module describing how to provides instances of application general utilities.
+ * A Dagger module describing how to provide application-wide dependencies
+ * that can be shared between the CLI and the GUI application.
  */
-@Module
-class AppModule {
+@Module(includes = [
+    SourceModule::class,
+    FileProviderModule::class,
+    PackagingModule::class
+])
+class CommonModule {
 
     /**
      * Provides a facility to convert JSON to object instances and vice-versa.
@@ -46,5 +49,5 @@ class AppModule {
      * before the application process quits.
      */
     @Provides @Singleton
-    fun providesParentJob() = Job()
+    fun providesParentJob(): Job = Job()
 }

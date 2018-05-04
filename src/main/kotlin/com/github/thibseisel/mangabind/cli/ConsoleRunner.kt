@@ -2,6 +2,7 @@ package com.github.thibseisel.mangabind.cli
 
 import com.github.thibseisel.mangabind.MangaDownloader
 import com.github.thibseisel.mangabind.clear
+import com.github.thibseisel.mangabind.packaging.Packager
 import com.github.thibseisel.mangabind.source.MangaRepository
 import com.github.thibseisel.mangabind.source.MangaSource
 import kotlinx.coroutines.experimental.runBlocking
@@ -16,10 +17,11 @@ import javax.inject.Named
  */
 class ConsoleRunner
 @Inject constructor(
-    private val view: ConsoleView,
-    private val mangaRepository: MangaRepository,
-    private val mangaDownloader: MangaDownloader,
-    @Named("tmpDir") private val imagesDir: File
+        private val view: ConsoleView,
+        private val mangaRepository: MangaRepository,
+        private val mangaDownloader: MangaDownloader,
+        private val packagers: Map<Packager.Output, @JvmSuppressWildcards Packager>,
+        @Named("tmpDir") private val imagesDir: File
 ) {
 
     private val logger = LogManager.getFormatterLogger("Console")
@@ -70,6 +72,26 @@ class ConsoleRunner
             view.updateProgress(chapter)
             val result = mangaDownloader.loadChapterAsync(pickedSource, chapter).await()
             view.writeChapterResult(chapter, result.pages, result.error)
+        }
+
+        // When all pages have been downloaded, ask how to package downloaded images.
+        val packageToCbz = view.askShouldPackageCbz()
+        val packager = packagers[if (packageToCbz) Packager.Output.CBZ else Packager.Output.FOLDER]
+                ?: throw IllegalStateException("Neither packager is available")
+
+        val packagedPath = "%s/mangas/%s_%d_%d".format(
+                System.getProperty("user.home"),
+                pickedSource.title.replace("\\s", "_"),
+                chapterRange.first,
+                chapterRange.last
+        )
+
+        try {
+            val output = packager.create(packagedPath)
+            view.reportPackagingSuccess(output)
+        } catch (e: Exception) {
+            logger.error("Error while packaging downloaded images", e)
+            view.showErrorMessage(e.message ?: "Error while packaging downloaded images")
         }
     }
 

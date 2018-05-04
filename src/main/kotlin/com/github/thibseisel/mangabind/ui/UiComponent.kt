@@ -1,7 +1,6 @@
 package com.github.thibseisel.mangabind.ui
 
-import com.github.thibseisel.mangabind.dagger.AppModule
-import com.github.thibseisel.mangabind.dagger.FileModule
+import com.github.thibseisel.mangabind.dagger.CommonModule
 import com.github.thibseisel.mangabind.dagger.FileProviderModule
 import dagger.BindsInstance
 import dagger.Component
@@ -15,8 +14,7 @@ import javax.inject.Singleton
  */
 @Singleton
 @Component(modules = [
-    AppModule::class,
-    FileModule::class,
+    CommonModule::class,
     FXModule::class
 ])
 interface UiComponent {
