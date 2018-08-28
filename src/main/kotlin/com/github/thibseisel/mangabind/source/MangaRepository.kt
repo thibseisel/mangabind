@@ -26,7 +26,7 @@ interface MangaRepository {
      *
      * @param manga The manga source to save to the repository.
      */
-    fun save(manga: MangaSource)
+    suspend fun save(manga: MangaSource)
 
     /**
      * Deletes an manga source from the repository.
@@ -34,5 +34,5 @@ interface MangaRepository {
      *
      * @param manga The manga source to delete.
      */
-    fun delete(manga: MangaSource)
+    suspend fun delete(manga: MangaSource)
 }
