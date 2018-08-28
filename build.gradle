@@ -1,5 +1,13 @@
 buildscript {
-    ext.kotlinVersion = '1.2.41'
+    ext {
+        kotlinVersion = '1.2.61'
+        koroutinesVersion = '0.25.0'
+        h2Version = '1.4.197'
+        okHttpVersion = '3.10.0'
+        jacksonVersion = '2.9.0'
+        daggerVersion = '2.17'
+        log4jVersion = '2.11.0'
+    }
 
     repositories {
         mavenCentral()
@@ -21,19 +29,13 @@ repositories {
     mavenCentral()
 }
 
-ext {
-    koroutinesVersion = '0.22.5'
-    okHttpVersion = '3.10.0'
-    jacksonVersion = '2.9.0'
-    daggerVersion = '2.15'
-    log4jVersion = '2.11.0'
-}
-
 dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
     implementation "org.jetbrains.kotlin:kotlin-reflect"
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:$koroutinesVersion"
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-javafx:$koroutinesVersion"
+
+    runtimeOnly "com.h2database:h2:$h2Version"
 
     implementation "com.squareup.okhttp3:okhttp:$okHttpVersion"
 
